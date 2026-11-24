@@ -92,6 +92,7 @@ main{padding:10px}
 td{padding:8px 6px}
 }
 </style>
+
 </head>
 <body>
 <header>
@@ -299,7 +300,7 @@ td{padding:8px 6px}
 </div>
 </div>
 
-<script>
+<script type="text/plain" id="appMain">
 // =====================================================================
 //  1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
 // =====================================================================
@@ -330,7 +331,7 @@ estado('● Sin configurar', '#ffb4b4'); return;
 }
 try{ firebase.initializeApp(firebaseConfig); }catch(e){ alert('Configuración de Firebase no válida.'); return; }
 const db = firebase.database();
-ref = db.ref('inventario');
+ref = db.ref(ALM.path);
 document.getElementById('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Cargando inventario desde la base de datos...</div>';
 db.ref('.info/connected').on('value', s => s.val() ? estado('● En línea', '#7ff0d6') : estado('● Sin conexión', '#ffb4b4'));
 const err = e => { console.error(e); alert('Firebase rechazó la lectura. Revisa las reglas de la base de datos.'); };
@@ -922,7 +923,7 @@ XLSX.writeFile(wb, 'Conteo_' + META.nombre.replace(/\s+/g,'_') + '.xlsx');
 function respaldo(){
 const a = document.createElement('a');
 a.href = URL.createObjectURL(new Blob([JSON.stringify({meta:META, productos:PRODS, conteos:CONT})], {type:'application/json'}));
-a.download = 'respaldo_inventario.json'; a.click();
+a.download = 'respaldo_' + ALM.key + '.json'; a.click();
 }
 function restaurar(inp){
 const f = inp.files[0]; if(!f) return;
@@ -944,6 +945,47 @@ resp = ''; iniciar(); setResp();
 window.addEventListener('scroll', () => { const y = window.scrollY;
 if(y > ultY && y > 80) hd.classList.add('oculto'); else if(y < ultY - 5 || y < 80) hd.classList.remove('oculto');
 ultY = y; }, {passive:true}); }
+</script>
+<style>
+#almSel{position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#fff7ef,#ffe3c7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+#almSel .box{background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:28px 22px;width:100%;max-width:420px;text-align:center}
+#almSel h2{margin:0 0 4px;color:#e65100;font-size:22px}
+#almSel p{margin:0 0 20px;color:#666;font-size:14px}
+#almSel button{display:block;width:100%;margin:10px 0;padding:18px;border:0;border-radius:12px;background:#f57c00;color:#fff;font-size:18px;font-weight:700;cursor:pointer}
+#almSel button:active{transform:scale(.98)}
+#almSel button.alt{background:#0288d1}
+#btnAlm{margin-left:8px;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#e65100;font-size:12px;font-weight:600;cursor:pointer;vertical-align:middle}
+</style>
+<script>
+// ===== Selector de almacén =====
+// Para agregar otro almacén: añade una línea aquí y su permiso en las reglas de Firebase.
+const ALMACENES = {
+  drogueria: { nombre: 'Droguería FS', path: 'inventario' },
+  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes' }
+};
+let ALM = null;
+function cambiarAlmacen(){ try{ sessionStorage.removeItem('alm'); }catch(e){} location.href = location.pathname; }
+function iniciarAlmacen(key){
+  ALM = Object.assign({ key: key }, ALMACENES[key]);
+  try{ sessionStorage.setItem('alm', key); }catch(e){}
+  const ov = document.getElementById('almSel'); if(ov) ov.remove();
+  document.title = 'Control de Existencias | ' + ALM.nombre;
+  const h = document.getElementById('title');
+  if(h){ h.textContent = 'Control de Existencias | ' + ALM.nombre;
+    const b = document.createElement('button'); b.id = 'btnAlm'; b.textContent = 'Cambiar almacén'; b.onclick = cambiarAlmacen; h.appendChild(b); }
+  const s = document.createElement('script'); s.textContent = document.getElementById('appMain').textContent; document.body.appendChild(s);
+}
+(function(){
+  let key = new URLSearchParams(location.search).get('alm');
+  if(!key){ try{ key = sessionStorage.getItem('alm'); }catch(e){} }
+  if(key && ALMACENES[key]) return iniciarAlmacen(key);
+  const ov = document.createElement('div'); ov.id = 'almSel';
+  let html = '<div class="box"><h2>Control de Existencias</h2><p>Selecciona el almacén</p>';
+  Object.keys(ALMACENES).forEach(function(k, i){ html += '<button class="' + (i % 2 ? 'alt' : '') + '" data-k="' + k + '">' + ALMACENES[k].nombre + '</button>'; });
+  ov.innerHTML = html + '</div>';
+  ov.addEventListener('click', function(e){ const k = e.target.getAttribute && e.target.getAttribute('data-k'); if(k) iniciarAlmacen(k); });
+  document.body.appendChild(ov);
+})();
 </script>
 </body>
 </html>
