@@ -269,12 +269,21 @@ td{padding:8px 6px}
 </div>
 </div>
 
+<!-- MODAL AVANCE POR ALMACÉN (solo admin) -->
+<div class="modal" id="mAvance">
+<div class="mbox" style="max-width:760px;width:100%">
+<h3 style="margin-top:0">🏬 Avance por almacén</h3>
+<div id="avBody"></div>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mAvance')">Cerrar</button><button class="btn btn-p" onclick="abrirAvance()">↻ Actualizar</button></div>
+</div>
+</div>
 <!-- MODAL ADMIN -->
 <div class="modal" id="mAdmin">
 <div class="mbox">
 <h3 style="margin-top:0">Administración</h3>
 <div class="sub" style="color:var(--mut);margin:-6px 0 12px;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Sesión: <b id="aUser"></b></span><button class="btn" onclick="salirAdmin()">Cerrar sesión</button></div>
 <button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirGeneral()">📊 Vista general: conteo vs stock (todos los laboratorios)</button>
+<button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirAvance()">🏬 Avance por almacén y enlaces/QR para el personal</button>
 <div style="margin-bottom:10px"><label class="sub" style="color:var(--mut)">Nombre del inventario</label>
 <input id="aNombre" placeholder="Inventario Noviembre 2026"></div>
 <div style="margin-bottom:14px"><label class="sub" style="color:var(--mut)">Meses para "Vcto. corto"</label>
@@ -446,7 +455,7 @@ labActual = null;
 document.getElementById('vLab').classList.add('hide');
 document.getElementById('vHome').classList.remove('hide');
 document.getElementById('btnHome').classList.add('hide');
-document.getElementById('title').textContent = 'Control de Existencias | Droguería FS';
+tituloAlm();
 render();
 }
 function setTab(t){ tab = t; renderLab(); }
@@ -945,8 +954,74 @@ resp = ''; iniciar(); setResp();
 window.addEventListener('scroll', () => { const y = window.scrollY;
 if(y > ultY && y > 80) hd.classList.add('oculto'); else if(y < ultY - 5 || y < 80) hd.classList.remove('oculto');
 ultY = y; }, {passive:true}); }
+
+// ----- Avance por almacén (solo admin) -----
+function abrirAvance(){
+  if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+  cerrar('mAdmin');
+  document.getElementById('mAvance').classList.add('on');
+  const body = document.getElementById('avBody');
+  body.innerHTML = '<p class="sub" style="color:var(--mut)">Cargando avance de cada almacén…</p>';
+  const db = firebase.database();
+  Promise.all(Object.keys(ALMACENES).map(k => {
+    const p = ALMACENES[k].path;
+    return Promise.all(['productos','conteos','cierres','meta'].map(c => db.ref(p + '/' + c).once('value').then(x => x.val() || {})))
+      .then(([prods, cont, cier, meta]) => ({k, prods, cont, cier, meta}))
+      .catch(e => ({k, error: e.message}));
+  })).then(res => { body.innerHTML = res.map(tarjetaAvance).join(''); });
+}
+function tarjetaAvance(r){
+  const A = ALMACENES[r.k];
+  const url = location.origin + location.pathname + '?alm=' + r.k;
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=' + encodeURIComponent(url);
+  let stats;
+  if(r.error){ stats = '<p style="color:var(--red)">No se pudo leer este almacén: ' + esc(r.error) + '</p>'; }
+  else {
+    let tot = 0, hech = 0, falta = 0, sobra = 0, ok = 0; const labs = new Set();
+    Object.entries(r.prods).forEach(([k, p]) => {
+      tot++; labs.add(p.lab);
+      const c = r.cont[k];
+      if(c){
+        hech++;
+        const t = Object.values(c.filas || {}).reduce((a, f) => a + (+f.cant || 0), 0);
+        const d = t - (+p.stkE || 0);
+        if(d < 0) falta++; else if(d > 0) sobra++; else ok++;
+      }
+    });
+    const pct = tot ? hech / tot * 100 : 0;
+    const cerr = Object.keys(r.cier).length;
+    stats = '<div class="sub" style="color:var(--mut)">' + esc(r.meta.nombre || 'Inventario') + '</div>'
+      + '<div style="height:10px;background:#e3e9ec;border-radius:6px;overflow:hidden;margin:8px 0 6px"><div style="height:100%;width:' + pct + '%;background:' + A.color + '"></div></div>'
+      + '<div style="font-size:24px;font-weight:800;color:' + A.color + '">' + pct.toFixed(pct > 0 && pct < 1 ? 2 : 0) + '% contado</div>'
+      + '<div class="sub">' + hech + ' de ' + tot + ' productos · <b>' + (tot - hech) + '</b> pendientes</div>'
+      + '<div class="sub">Laboratorios cerrados: <b>' + cerr + '</b> de ' + labs.size + '</div>'
+      + '<div class="sub">Faltante: <b style="color:var(--red)">' + falta + '</b> · Sobrante: <b style="color:var(--warn)">' + sobra + '</b> · Cuadra: <b style="color:var(--ok)">' + ok + '</b></div>';
+  }
+  const aqui = ALM && r.k === ALM.key;
+  return '<div style="border:2px solid ' + A.color + ';border-radius:14px;padding:14px;margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">'
+    + '<div style="flex:1;min-width:220px">'
+    + '<div style="background:' + A.color + ';color:#fff;font-weight:800;padding:6px 12px;border-radius:8px;display:inline-block;margin-bottom:8px">' + esc(A.nombre) + (aqui ? ' · estás aquí' : '') + '</div>'
+    + stats
+    + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+    + (aqui ? '' : '<button class="btn btn-p" onclick="irAlmacen(\'' + r.k + '\')">Ir a este almacén</button>')
+    + '<button class="btn" onclick="copiarEnlace(\'' + url + '\')">📋 Copiar enlace</button>'
+    + '<a class="btn" href="' + qr + '" target="_blank" rel="noopener" style="text-decoration:none">🖨 Abrir QR</a>'
+    + '</div>'
+    + '<div class="sub" style="margin-top:6px;word-break:break-all;color:var(--mut)">' + esc(url) + '</div>'
+    + '</div>'
+    + '<div style="text-align:center"><img src="' + qr + '" width="150" height="150" alt="QR ' + esc(A.nombre) + '" style="border-radius:8px;background:#fff;border:1px solid #e3e9ec"><div class="sub" style="color:var(--mut)">QR para el personal</div></div>'
+    + '</div>';
+}
+function irAlmacen(k){ try{ localStorage.setItem('alm', k); }catch(e){} location.href = location.pathname + '?alm=' + k; }
+function copiarEnlace(u){
+  (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject())
+    .then(() => alert('Enlace copiado:\n' + u))
+    .catch(() => prompt('Copia este enlace:', u));
+}
 </script>
 <style>
+#almBanda{background:var(--alm);color:#fff;text-align:center;font-size:15px;letter-spacing:.5px;padding:7px 10px;margin:-12px -18px 10px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+#almFijo{position:fixed;left:10px;bottom:10px;z-index:40;background:var(--alm);color:#fff;font-weight:700;font-size:13px;padding:7px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;font-family:system-ui,Segoe UI,Roboto,sans-serif}
 #almSel{position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#fff7ef,#ffe3c7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,Segoe UI,Roboto,sans-serif}
 #almSel .box{background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:28px 22px;width:100%;max-width:420px;text-align:center}
 #almSel h2{margin:0 0 4px;color:#e65100;font-size:22px}
@@ -960,24 +1035,42 @@ ultY = y; }, {passive:true}); }
 // ===== Selector de almacén =====
 // Para agregar otro almacén: añade una línea aquí y su permiso en las reglas de Firebase.
 const ALMACENES = {
-  drogueria: { nombre: 'Droguería FS', path: 'inventario' },
-  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes' }
+  drogueria: { nombre: 'Droguería FS', path: 'inventario',        color: '#f57c00' },
+  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes', color: '#0288d1' }
 };
 let ALM = null;
-function cambiarAlmacen(){ try{ sessionStorage.removeItem('alm'); }catch(e){} location.href = location.pathname; }
+function cambiarAlmacen(){ try{ localStorage.removeItem('alm'); sessionStorage.removeItem('alm'); }catch(e){} location.href = location.pathname; }
+// Título con el nombre del almacén + botón "Cambiar almacén"
+function tituloAlm(){
+  const h = document.getElementById('title'); if(!h || !ALM) return;
+  h.textContent = 'Control de Existencias | ' + ALM.nombre;
+  const b = document.createElement('button'); b.id = 'btnAlm'; b.textContent = 'Cambiar almacén'; b.onclick = cambiarAlmacen; h.appendChild(b);
+}
+// Franja de color arriba + etiqueta fija abajo, para que el usuario siempre sepa en qué almacén está
+function pintarAlmacen(){
+  document.documentElement.style.setProperty('--alm', ALM.color);
+  const hd = document.querySelector('header');
+  if(hd && !document.getElementById('almBanda')){
+    const d = document.createElement('div'); d.id = 'almBanda';
+    d.innerHTML = '📍 ESTÁS EN EL ALMACÉN: <b>' + ALM.nombre.toUpperCase() + '</b>';
+    hd.insertBefore(d, hd.firstChild);
+  }
+  if(!document.getElementById('almFijo')){
+    const f = document.createElement('div'); f.id = 'almFijo'; f.textContent = '📍 ' + ALM.nombre;
+    document.body.appendChild(f);
+  }
+}
 function iniciarAlmacen(key){
   ALM = Object.assign({ key: key }, ALMACENES[key]);
-  try{ sessionStorage.setItem('alm', key); }catch(e){}
+  try{ localStorage.setItem('alm', key); }catch(e){}
   const ov = document.getElementById('almSel'); if(ov) ov.remove();
   document.title = 'Control de Existencias | ' + ALM.nombre;
-  const h = document.getElementById('title');
-  if(h){ h.textContent = 'Control de Existencias | ' + ALM.nombre;
-    const b = document.createElement('button'); b.id = 'btnAlm'; b.textContent = 'Cambiar almacén'; b.onclick = cambiarAlmacen; h.appendChild(b); }
+  tituloAlm(); pintarAlmacen();
   const s = document.createElement('script'); s.textContent = document.getElementById('appMain').textContent; document.body.appendChild(s);
 }
 (function(){
   let key = new URLSearchParams(location.search).get('alm');
-  if(!key){ try{ key = sessionStorage.getItem('alm'); }catch(e){} }
+  if(!key){ try{ key = localStorage.getItem('alm'); }catch(e){} }
   if(key && ALMACENES[key]) return iniciarAlmacen(key);
   const ov = document.createElement('div'); ov.id = 'almSel';
   let html = '<div class="box"><h2>Control de Existencias</h2><p>Selecciona el almacén</p>';
