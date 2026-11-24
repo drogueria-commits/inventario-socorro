@@ -175,7 +175,7 @@ td{padding:8px 6px}
 <div class="mbox">
 <div class="row" style="justify-content:space-between;margin-bottom:12px">
 <div><div style="font-weight:700" id="mTitle"></div><div class="sub" style="color:var(--mut)" id="mResp"></div></div>
-<div class="tot">TOTAL<b id="mTot">0</b>unid.</div>
+<div class="tot">TOTAL<b id="mTot">0</b><span id="mTotU">unid.</span></div>
 </div>
 <!-- Código de barras: DESACTIVADO por ahora (no aprobado). Para reactivarlo, quitar class="hide" de este div. -->
 <div class="hide" id="bloqueBarra" style="margin-bottom:8px">
@@ -379,9 +379,15 @@ function lista(){ return Object.entries(PRODS).map(([k,p]) => ({k, ...p, c: CONT
 const contado = p => !!p.c;
 const filasDe = p => (p.c && p.c.filas) ? p.c.filas : [];
 const total = p => filasDe(p).reduce((a,f)=>a+(+f.cant||0),0);
+// ----- Enteros + fracciones (almacenes con "fracciones: true", ej. Canjes) -----
+const FR = !!(ALM && ALM.fracciones);
+const totalF = p => filasDe(p).reduce((a,f)=>a+(+f.fr||0),0);
+const txtEF = (e, f) => e + ' ent.' + (f ? ' + ' + f + ' fr.' : '');
+function fmtDif(p, d){ if(!FR) return d; const fx = +p.frac||1, a = Math.abs(d), e = Math.floor(a/fx), f = a % fx; return (d<0?'-':'') + (f ? e + ' ent. + ' + f + ' fr.' : e + ' ent.'); }
+function cantLlena(r){ const f = r.querySelector('.ff'); return r.querySelector('.fc').value !== '' || (!!f && f.value !== ''); }
 function vctoCorto(p){
 const lim = new Date(); lim.setMonth(lim.getMonth() + (+META.meses||6));
-return filasDe(p).some(f => { if(!f.venc || !(+f.cant)) return false;
+return filasDe(p).some(f => { if(!f.venc || !(+f.cant || +f.fr)) return false;
 const [y,m] = f.venc.split('-').map(Number); return new Date(y, m, 0) <= lim; });
 }
 const fmtVenc = v => v ? vencTxt(v) : '';  // AAAA-MM -> MM/AA
@@ -483,7 +489,7 @@ String(p.cod).toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || (
 const tb = document.getElementById('tbody');
 if(!vista.length){ tb.innerHTML = '<tr><td colspan="3" class="empty">No hay productos en esta vista.</td></tr>'; return; }
 tb.innerHTML = vista.map((p,i) => {
-const lotes = filasDe(p).filter(f=>+f.cant).map(f=>`${f.lote||'s/l'} (${f.cant}${f.venc?' · '+fmtVenc(f.venc):''})`).join(' · ');
+const lotes = filasDe(p).filter(f=>+f.cant||+f.fr).map(f=>`${f.lote||'s/l'} (${FR ? txtEF(+f.cant||0, +f.fr||0) : f.cant}${f.venc?' · '+fmtVenc(f.venc):''})`).join(' · ');
 return `<tr style="cursor:${cerrado(p.lab)?'default':'pointer'}" onclick="abrirConteo('${p.k}')">
 <td><div class="num">${i+1}</div></td>
 <td><div class="cod">${esc(p.cod)}</div><div class="desc">${esc(p.desc)}</div>
@@ -492,7 +498,7 @@ ${p.c&&p.c.barra?`<div class="lotes">▮▯▮ ${esc(p.c.barra)}</div>`:''}
 ${p.c&&p.c.foto?`<div class="lotes">📷 Foto del código guardada</div>`:''}
 ${p.c&&p.c.coment?`<div class="lotes" style="color:var(--pri2)">💬 ${esc(p.c.coment)}</div>`:''}
 ${p.c?`<div class="lotes">Contó: ${esc(p.c.por)} · ${fmtFecha(p.c.fecha)}</div>`:''}</td>
-<td style="text-align:right"><span class="cbtn">${total(p)} unid.
+<td style="text-align:right"><span class="cbtn">${FR ? txtEF(total(p), totalF(p)) : total(p) + ' unid.'}
 <button class="btn btn-p" style="padding:5px 10px;border-radius:16px" >${contado(p)?'✎ Editar':'+ Contar'}</button></span></td></tr>`;
 }).join('');
 }
@@ -501,7 +507,8 @@ ${p.c?`<div class="lotes">Contó: ${esc(p.c.por)} · ${fmtFecha(p.c.fecha)}</div
 function vencTxt(v){ if(!v) return ''; const [y,m] = v.split('-'); return m + '/' + y.slice(2); }  // 2027-05 -> 05/27
 function filaHTML(i, f){
 return `<div class="mrow">
-<div><label>Cantidad (Lote ${i})</label><input type="text" inputmode="numeric" class="fc" value="${esc(f.cant)}" placeholder="0" oninput="soloNum(this);cambio()"></div>
+${FR ? `<div><label>Enteros + Fracciones (Lote ${i})</label><div style="display:flex;gap:6px"><input type="text" inputmode="numeric" class="fc" style="min-width:0;width:50%" value="${esc(f.cant)}" placeholder="Enteros" title="Enteros (cajas)" oninput="soloNum(this);cambio()"><input type="text" inputmode="numeric" class="ff" style="min-width:0;width:50%" value="${esc(f.fr ?? '')}" placeholder="Fracc." title="Fracciones (unidades sueltas)" oninput="soloNum(this);cambio()"></div></div>`
+: `<div><label>Cantidad (Lote ${i})</label><input type="text" inputmode="numeric" class="fc" value="${esc(f.cant)}" placeholder="0" oninput="soloNum(this);cambio()"></div>`}
 <div><label>Lote ${i}</label><input class="fl" value="${esc(f.lote)}" placeholder="Ej. L1234" oninput="cambio()"></div>
 <div><label>Vencimiento ${i}</label><input type="text" inputmode="numeric" class="fv" maxlength="5" value="${esc(vencTxt(f.venc))}" placeholder="MM/AA" oninput="mascara(this);cambio()"></div>
 <button class="btn btn-r" onclick="quitarFila(this)" title="Quitar lote">✕</button>
@@ -522,7 +529,7 @@ if(mes < 1 || mes > 12 || an < 2000 || an > 2060) return null;
 return an + '-' + m[1];
 }
 function filaCompleta(r){
-return r.querySelector('.fc').value !== '' && r.querySelector('.fl').value.trim() !== '' && !!leerVenc(r.querySelector('.fv').value);
+return cantLlena(r) && r.querySelector('.fl').value.trim() !== '' && !!leerVenc(r.querySelector('.fv').value);
 }
 // Cada vez que se completa el último lote, aparece uno nuevo vacío
 function cambio(){
@@ -545,7 +552,7 @@ renumerar(); sumar();
 function renumerar(){
 [...document.querySelectorAll('#mRows .mrow')].forEach((r,i) => {
 const l = r.querySelectorAll('label');
-l[0].textContent = 'Cantidad (Lote '+(i+1)+')'; l[1].textContent = 'Lote '+(i+1); l[2].textContent = 'Vencimiento '+(i+1);
+l[0].textContent = (FR ? 'Enteros + Fracciones (Lote ' : 'Cantidad (Lote ')+(i+1)+')'; l[1].textContent = 'Lote '+(i+1); l[2].textContent = 'Vencimiento '+(i+1);
 });
 }
 function quitarFila(b){
@@ -572,7 +579,8 @@ document.getElementById('mBarra').value = (p.c && p.c.barra) || '';
 fotoPend = null; fotoQuitar = false; fotoExiste = !!(p.c && p.c.foto); mostrarFoto();
 setTimeout(()=>{ const r = document.querySelectorAll('#mRows .fc'); r[r.length-1].focus(); }, 50);
 }
-function sumar(){ let t = 0; document.querySelectorAll('#mRows .fc').forEach(i => t += +i.value||0); document.getElementById('mTot').textContent = t; }
+function sumar(){ let t = 0, f = 0; document.querySelectorAll('#mRows .fc').forEach(i => t += +i.value||0); document.querySelectorAll('#mRows .ff').forEach(i => f += +i.value||0);
+document.getElementById('mTot').textContent = FR ? t + ' ent. + ' + f + ' fr.' : t; const u = document.getElementById('mTotU'); if(u) u.style.display = FR ? 'none' : ''; }
 function limpiarFilas(){ document.getElementById('mRows').innerHTML = filaHTML(1,{cant:'',lote:'',venc:''}); sumar(); }
 function cerrar(id){ document.getElementById(id).classList.remove('on'); }
 
@@ -581,13 +589,16 @@ if(cerrado(PRODS[prodActual].lab)){ alert('🔒 El laboratorio se cerró mientra
 const filas = []; let n = 0;
 for(const r of document.querySelectorAll('#mRows .mrow')){
 n++;
-const cant = r.querySelector('.fc').value, lote = r.querySelector('.fl').value.trim().toUpperCase(), vt = r.querySelector('.fv').value.trim();
+const ffv = r.querySelector('.ff') ? r.querySelector('.ff').value : '';
+const cant = (r.querySelector('.fc').value === '' && ffv !== '') ? '0' : r.querySelector('.fc').value, lote = r.querySelector('.fl').value.trim().toUpperCase(), vt = r.querySelector('.fv').value.trim();
 if(cant === '' && !lote && !vt) continue;                      // fila vacía: se ignora
 const falta = [cant === '' ? 'cantidad' : '', !lote ? 'lote' : '', !vt ? 'vencimiento' : ''].filter(Boolean);
 if(falta.length){ alert('Lote ' + n + ': falta ' + falta.join(', ') + '. Completa los 3 datos (cantidad, lote y vencimiento).'); return; }
 const venc = leerVenc(vt);
 if(venc === null){ alert('Lote ' + n + ': la fecha "' + vt + '" no es válida. Usa MM/AA (ej. 05/27).'); return; }
-filas.push({cant:+cant, lote, venc});
+const fx = +PRODS[prodActual].frac || 1;
+if(FR && fx > 1 && (+ffv||0) >= fx){ alert('Lote ' + n + ': las fracciones (' + ffv + ') deben ser menores que el Frac del producto (' + fx + '). Pásalas a enteros.'); return; }
+filas.push(FR ? {cant:+cant, fr:+ffv||0, lote, venc} : {cant:+cant, lote, venc});
 }
 const coment = document.getElementById('mComent').value.trim();
 const barra = document.getElementById('mBarra').value.trim();
@@ -764,7 +775,7 @@ cerrar('mAdmin');
 document.getElementById('mGeneral').classList.add('on');
 renderGeneral();
 }
-function difDe(p){ return contado(p) ? total(p) - (+p.stkE||0) : null; }
+function difDe(p){ if(!contado(p)) return null; if(FR){ const fx = +p.frac||1; return (total(p)*fx + totalF(p)) - ((+p.stkE||0)*fx + (+p.stkF||0)); } return total(p) - (+p.stkE||0); }
 function estadoDe(p){ const d = difDe(p); return d === null ? 'pen' : d < 0 ? 'falta' : d > 0 ? 'sobra' : 'ok'; }
 function filtrarGeneral(){
 const q = (document.getElementById('gQ').value||'').trim().toUpperCase();
@@ -800,19 +811,19 @@ document.getElementById('gBody').innerHTML = rows.slice(0, MAX).map(p => {
 const d = difDe(p), e = estadoDe(p);
 const stk = (+p.stkE||0) + ((+p.stkF||0) ? ' <span class="gL">+ '+(+p.stkF)+' fr.</span>' : '');
 const estTxt = {pen:'<span class="gP">Pendiente</span>', falta:'<span class="gF">Falta</span>', sobra:'<span class="gS">Sobra</span>', ok:'<span class="gOk">Cuadra</span>'}[e];
-const difTxt = d === null ? '<span class="gP">—</span>' : '<span class="'+(d<0?'gF':d>0?'gS':'gOk')+'">'+(d>0?'+':'')+d+'</span>';
-const lotes = filasDe(p).map(f => esc(f.lote||'s/l')+' · '+esc(fmtVenc(f.venc))+' · <b>'+(+f.cant||0)+'</b>').join('<br>');
+const difTxt = d === null ? '<span class="gP">—</span>' : '<span class="'+(d<0?'gF':d>0?'gS':'gOk')+'">'+(d>0?'+':'')+fmtDif(p,d)+'</span>';
+const lotes = filasDe(p).map(f => esc(f.lote||'s/l')+' · '+esc(fmtVenc(f.venc))+' · <b>'+(FR ? txtEF(+f.cant||0, +f.fr||0) : (+f.cant||0))+'</b>').join('<br>');
 return '<tr><td>'+esc(p.lab)+'</td><td>'+esc(p.cod)+'</td><td>'+celdaBarra(p)+'</td><td>'+esc(p.desc)+(p.c&&p.c.coment?'<div class="gL">💬 '+esc(p.c.coment)+'</div>':'')+'</td>'+
-'<td class="n">'+stk+'</td><td class="n">'+(contado(p)?total(p):'<span class="gP">—</span>')+'</td><td class="n">'+difTxt+'</td><td>'+estTxt+'</td>'+
+'<td class="n">'+stk+'</td><td class="n">'+(contado(p)?(FR ? txtEF(total(p), totalF(p)) : total(p)):'<span class="gP">—</span>')+'</td><td class="n">'+difTxt+'</td><td>'+estTxt+'</td>'+
 '<td class="gL">'+lotes+'</td><td class="gL">'+(p.c?esc(p.c.por||'')+'<br>'+esc(fmtFecha(p.c.fecha)):'')+'</td></tr>';
 }).join('') || '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--mut)">Sin resultados</td></tr>';
 document.getElementById('gPie').textContent = 'Mostrando ' + Math.min(rows.length, MAX) + ' de ' + rows.length + ' productos' +
-(rows.length > MAX ? ' (usa los filtros para ver el resto)' : '') + '. Diferencia = contado − stock entero (Stk_E) del sistema. Se actualiza en vivo.';
+(rows.length > MAX ? ' (usa los filtros para ver el resto)' : '') + (FR ? '. Diferencia = (enteros × Frac + fracciones) contados − stock del sistema (Stk_E × Frac + Stk_F). Se actualiza en vivo.' : '. Diferencia = contado − stock entero (Stk_E) del sistema. Se actualiza en vivo.');
 }
 function exportarGeneral(){
 const data = filtrarGeneral().map(p => { const d = difDe(p), e = estadoDe(p);
 return {Laboratorio:p.lab, Codigo:p.cod, Descripcion:p.desc, Tipo:p.tipo, Frac:p.frac||1, Stk_E_Sistema:+p.stkE||0, Stk_F_Sistema:+p.stkF||0,
-Contado: contado(p) ? total(p) : '', Diferencia: d === null ? '' : d,
+Contado: contado(p) ? total(p) : '', Contado_F: contado(p) ? totalF(p) : '', Diferencia: d === null ? '' : (FR ? fmtDif(p,d) : d),
 Estado: {pen:'PENDIENTE', falta:'FALTA', sobra:'SOBRA', ok:'CUADRA'}[e],
 Lotes: filasDe(p).map(f => (f.lote||'s/l')+' '+fmtVenc(f.venc)+' ('+(+f.cant||0)+')').join(' | '),
 Responsable: p.c ? p.c.por||'' : '', Fecha: p.c ? fmtFecha(p.c.fecha) : '', Comentario: p.c ? p.c.coment||'' : '', Cod_Barras: p.c ? p.c.barra||'' : '', Foto_Codigo: p.c && p.c.foto ? 'SI' : ''}; });
@@ -904,7 +915,7 @@ const filas = [cab];
 cont.forEach(p => {
 filasDe(p).forEach(l => {
 filas.push([p.lab, p.tipo, String(p.cod), p.desc, p.frac||1, p.estado||'S', p.almacen||'DROGUERIA FS',
-+l.cant||0, 0, l.lote, fecha(l.venc), '', '', '', '', '', '', '', '', p.c.coment||'', p.c.barra||'']);
++l.cant||0, +l.fr||0, l.lote, fecha(l.venc), '', '', '', '', '', '', '', '', p.c.coment||'', p.c.barra||'']);
 });
 });
 const pen = [['Laboratorio','Tipo','CodPro','Descripción Producto']].concat(
@@ -984,7 +995,8 @@ function tarjetaAvance(r){
       if(c){
         hech++;
         const t = Object.values(c.filas || {}).reduce((a, f) => a + (+f.cant || 0), 0);
-        const d = t - (+p.stkE || 0);
+        const fx = +p.frac || 1, tf = Object.values(c.filas || {}).reduce((a, f) => a + (+f.fr || 0), 0);
+        const d = A.fracciones ? (t * fx + tf) - ((+p.stkE || 0) * fx + (+p.stkF || 0)) : t - (+p.stkE || 0);
         if(d < 0) falta++; else if(d > 0) sobra++; else ok++;
       }
     });
@@ -1036,7 +1048,7 @@ function copiarEnlace(u){
 // Para agregar otro almacén: añade una línea aquí y su permiso en las reglas de Firebase.
 const ALMACENES = {
   drogueria: { nombre: 'Droguería FS', path: 'inventario',        color: '#f57c00' },
-  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes', color: '#0288d1' }
+  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes', color: '#0288d1', fracciones: true }  // cuenta enteros + fracciones
 };
 let ALM = null;
 function cambiarAlmacen(){ try{ localStorage.removeItem('alm'); sessionStorage.removeItem('alm'); }catch(e){} location.href = location.pathname; }
