@@ -231,7 +231,7 @@ td{padding:8px 6px}
 <input id="gQ" placeholder="Buscar código o descripción..." oninput="renderGeneral()" style="flex:1;min-width:200px">
 <select id="gLab" onchange="renderGeneral()"></select>
 <select id="gEst" onchange="renderGeneral()">
-<option value="">Todos los estados</option><option value="con">Contados</option><option value="pen">Pendientes</option>
+<option value="">Todos los estados</option><option value="con">Contados</option><option value="pen">Pendientes con stock</option><option value="sinstk">Sin stock en sistema (no contados)</option>
 <option value="falta">Con faltante</option><option value="sobra">Con sobrante</option><option value="ok">Cuadra</option>
 </select>
 </div>
@@ -421,7 +421,7 @@ const cerrado = lab => !!CIERRES[labKey(lab)];
 function cerrarLab(lab){
 if(cerrado(lab)) { alert('Este laboratorio ya está cerrado. Solo Admin puede reabrirlo.'); return; }
 const prods = lista().filter(p => p.lab === lab), falt = prods.filter(p => !contado(p)).length;
-if(!confirm('¿Cerrar ' + lab + '?' + (falt ? '\n\nOjo: aún faltan ' + falt + ' productos por contar.' : '') + '\n\nUna vez cerrado ya no se podrá editar.')) return;
+if(!confirm('¿Cerrar ' + lab + '?' + (falt ? '\n\nOjo: aún hay ' + falt + ' productos sin contar.' : '') + '\n\nUna vez cerrado ya no se podrá editar.')) return;
 ref.child('cierres/' + labKey(lab)).set({lab, por: resp || 'SIN NOMBRE', fecha: firebase.database.ServerValue.TIMESTAMP})
 .catch(e => alert('No se pudo cerrar: ' + e.message));
 }
@@ -442,6 +442,9 @@ function render(){ if(!(cargado.meta && cargado.prod && cargado.cont && cargado.
 // ----- Helpers -----
 function lista(){ return Object.entries(PRODS).map(([k,p]) => ({k, ...p, c: CONT[k]||null})); }
 const contado = p => !!p.c;
+// El avance se mide solo sobre productos con stock en el sistema (Stk_E o Stk_F > 0)
+const conStock = p => (+p.stkE||0) > 0 || (+p.stkF||0) > 0;
+const hecho = p => (typeof contadoFin === 'function') ? contadoFin(p) : contado(p);
 const filasDe = p => (p.c && p.c.filas) ? p.c.filas : [];
 const total = p => filasDe(p).reduce((a,f)=>a+(+f.cant||0),0);
 // ----- Enteros + fracciones (almacenes con "fracciones: true", ej. Canjes) -----
@@ -460,11 +463,12 @@ const fmtFecha = t => t ? new Date(t).toLocaleString('es-PE') : '';
 
 // ----- Encabezado -----
 function renderHeader(){
-const L = lista(), tot = L.length, hech = L.filter(contado).length;
+const L = lista(), S = L.filter(conStock), tot = S.length, hech = S.filter(hecho).length;
+const extra = L.filter(p => !conStock(p) && hecho(p)).length;
 const pct = tot ? hech/tot*100 : 0;
 document.getElementById('gBar').style.width = pct + '%';
 document.getElementById('gPct').textContent = pct.toFixed(pct>0&&pct<1?2:0) + '% completado';
-document.getElementById('gFalt').textContent = 'Faltan ' + (tot-hech) + ' productos';
+document.getElementById('gFalt').textContent = '';
 document.getElementById('resp').textContent = resp || 'SIN ASIGNAR';
 document.getElementById('subtitle').textContent = labActual ? 'Control de Existencias • ' + META.nombre : META.nombre;
 }
@@ -486,9 +490,10 @@ function renderHome(){
 renderHeader();
 const m = {};
 lista().forEach(p => {
-if(!m[p.lab]) m[p.lab] = {nombre:p.lab, tipos:new Set(), tot:0, hech:0};
+if(!m[p.lab]) m[p.lab] = {nombre:p.lab, tipos:new Set(), tot:0, hech:0, extra:0};
 if(p.tipo) m[p.lab].tipos.add(p.tipo);
-m[p.lab].tot++; if(contado(p)) m[p.lab].hech++;
+if(conStock(p)){ m[p.lab].tot++; if(hecho(p)) m[p.lab].hech++; }
+else if(hecho(p)) m[p.lab].extra++;
 });
 LABS = Object.values(m).sort((a,b)=>a.nombre.localeCompare(b.nombre));
 const g = document.getElementById('grid');
@@ -497,7 +502,7 @@ const q = document.getElementById('qLab').value.toLowerCase();
 g.innerHTML = LABS.map((l,i) => ({l,i})).filter(({l}) =>
 l.nombre.toLowerCase().includes(q) || [...l.tipos].some(t=>t.toLowerCase().includes(q))
 ).map(({l,i}) => {
-const pct = Math.round(l.tot ? l.hech/l.tot*100 : 0);
+const pct = l.tot ? Math.floor(l.hech/l.tot*100) : 100;
 return `<div class="lab" onclick="abrirLab(${i})">
 <div class="lab-h"><span>N° ${i+1}</span>${cerrado(l.nombre) ? '<span class="tag" style="background:#d64545;border-color:#d64545">🔒 Cerrado</span>'
 : `<span class="tag" style="cursor:pointer" title="Cerrar laboratorio" onclick="event.stopPropagation();cerrarLab(LABS[${i}].nombre)">🔓 ${pct===100?'Completo · Cerrar':'Abierto'}</span>`}</div>
@@ -506,7 +511,7 @@ return `<div class="lab" onclick="abrirLab(${i})">
 <div class="ring" style="background:conic-gradient(var(--ok) ${pct*3.6}deg,#dfe7ea 0)"><span>${pct}%</span></div></div>
 <div class="lab-name">${esc(l.nombre)}</div>
 <div class="chips">${[...l.tipos].map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
-<div class="lab-f">Faltan ${l.tot-l.hech} <span class="cnt">${l.hech} / ${l.tot}</span></div>
+<div class="lab-f"><span class="cnt">${pct}%</span></div>
 </div></div>`;
 }).join('') || '<div class="empty" style="grid-column:1/-1">Sin resultados.</div>';
 }
@@ -534,15 +539,18 @@ function setTab(t){ tab = t; renderLab(); }
 function renderLab(){
 renderHeader();
 const prods = lista().filter(p => p.lab === labActual).sort((a,b)=>a.desc.localeCompare(b.desc));
+// Pendientes: se muestran TODOS (el personal no sabe ni debe saber cuáles tienen stock).
+// El % de avance sí se mide solo con los productos que tienen stock en el sistema.
 const pen = prods.filter(p=>!contado(p)), con = prods.filter(contado), ven = prods.filter(vctoCorto);
+const penS = pen.filter(conStock).length, totS = prods.filter(conStock).length, hechS = prods.filter(p=>conStock(p)&&contado(p)).length;
 document.getElementById('nPen').textContent = pen.length;
 document.getElementById('nCon').textContent = con.length;
 document.getElementById('nVen').textContent = ven.length;
 ['Pen','Con','Ven'].forEach(k => document.getElementById('t'+k).classList.toggle('on', tab===k.toLowerCase()));
-const pct = prods.length ? con.length/prods.length*100 : 0;
+const pct = totS ? hechS/totS*100 : 100;
 document.getElementById('lBar').style.width = pct+'%';
-document.getElementById('lPct').textContent = Math.round(pct)+'% completado';
-document.getElementById('lFalt').textContent = 'Faltan '+pen.length+' productos';
+document.getElementById('lPct').textContent = Math.floor(pct)+'% completado';
+document.getElementById('lFalt').textContent = '';
 const cand = document.getElementById('lCandado');
 if(cerrado(labActual)){ const c = CIERRES[labKey(labActual)];
 cand.innerHTML = `<div class="box" style="background:#fde8e8;color:#9b1c1c;margin:0;font-size:13px">🔒 <b>Laboratorio cerrado</b> por ${esc(c.por)} · ${fmtFecha(c.fecha)}. Ya no se puede editar.</div>`; }
@@ -868,6 +876,8 @@ if(q && !((p.cod||'').toUpperCase().includes(q) || (p.desc||'').includes(q))) re
 const e = estadoDe(p);
 if(est === 'con') return e !== 'pen';
 if(est === 'foto') return fotoSinCodigo(p);
+if(est === 'pen') return e === 'pen' && conStock(p);
+if(est === 'sinstk') return e === 'pen' && !conStock(p);
 if(est) return e === est;
 return true;
 }).sort((a,b) => a.lab.localeCompare(b.lab) || a.desc.localeCompare(b.desc));
@@ -881,11 +891,11 @@ gPendiente = false;
 if(!esAdmin(firebase.auth().currentUser)){ cerrar('mGeneral'); return; }
 const lab = document.getElementById('gLab').value;
 const base = lista().filter(p => !lab || p.lab === lab);
-const cnt = {tot:base.length, con:0, pen:0, falta:0, sobra:0, ok:0, foto:0};
-base.forEach(p => { const e = estadoDe(p); cnt[e]++; if(e !== 'pen') cnt.con++; if(fotoSinCodigo(p)) cnt.foto++; });
+const cnt = {tot:base.length, con:0, pen:0, sinstk:0, falta:0, sobra:0, ok:0, foto:0};
+base.forEach(p => { const e = estadoDe(p); if(e === 'pen' && !conStock(p)) cnt.sinstk++; else cnt[e]++; if(e !== 'pen') cnt.con++; if(fotoSinCodigo(p)) cnt.foto++; });
 const card = (k, t, n) => '<div class="'+(gFiltroCard===k?'on':'')+'" onclick="setCardGeneral(\''+k+'\')"><b>'+n+'</b><span>'+t+'</span></div>';
 document.getElementById('gCards').innerHTML =
-card('', 'Productos', cnt.tot) + card('con','Contados', cnt.con) + card('pen','Pendientes', cnt.pen) +
+card('', 'Productos', cnt.tot) + card('con','Contados', cnt.con) + card('pen','Pendientes con stock', cnt.pen) + card('sinstk','Sin stock (no contados)', cnt.sinstk) +
 card('falta','Con faltante', cnt.falta) + card('sobra','Con sobrante', cnt.sobra) + card('ok','Cuadra', cnt.ok) + card('foto','📷 Foto sin código', cnt.foto);
 const rows = filtrarGeneral(), MAX = 1500;
 document.getElementById('gBody').innerHTML = rows.slice(0, MAX).map(p => {
@@ -1009,7 +1019,7 @@ filas.push([p.lab, p.tipo, String(p.cod), p.desc, p.frac||1, p.estado||'S', p.al
 });
 });
 const pen = [['Laboratorio','Tipo','CodPro','Descripción Producto']].concat(
-lista().filter(p=>!contadoFin(p)).sort((a,b)=>a.lab.localeCompare(b.lab)||a.desc.localeCompare(b.desc)).map(p=>[p.lab,p.tipo,String(p.cod),p.desc]));
+lista().filter(p=>!contadoFin(p) && conStock(p)).sort((a,b)=>a.lab.localeCompare(b.lab)||a.desc.localeCompare(b.desc)).map(p=>[p.lab,p.tipo,String(p.cod),p.desc]));
 const wb = XLSX.utils.book_new();
 const ws = XLSX.utils.aoa_to_sheet(filas);
 ws['!cols'] = [30,12,8,40,5,6,14,7,7,12,13,12,13,12,13,12,13,12,13,40,16].map(w=>({wch:w}));
@@ -1267,12 +1277,13 @@ function tarjetaAvance(r){
   let stats;
   if(r.error){ stats = '<p style="color:var(--red)">No se pudo leer este almacén: ' + esc(r.error) + '</p>'; }
   else {
-    let tot = 0, hech = 0, falta = 0, sobra = 0, ok = 0; const labs = new Set();
+    let tot = 0, hech = 0, extra = 0, falta = 0, sobra = 0, ok = 0; const labs = new Set();
     Object.entries(r.prods).forEach(([k, p]) => {
-      tot++; labs.add(p.lab);
+      labs.add(p.lab);
+      const cs = (+p.stkE || 0) > 0 || (+p.stkF || 0) > 0; if(cs) tot++;
       const c = r.cont[k];
       if(c){
-        hech++;
+        if(cs) hech++; else extra++;
         const t = Object.values(c.filas || {}).reduce((a, f) => a + (+f.cant || 0), 0);
         const fx = +p.frac || 1, tf = Object.values(c.filas || {}).reduce((a, f) => a + (+f.fr || 0), 0);
         const d = A.fracciones ? (t * fx + tf) - ((+p.stkE || 0) * fx + (+p.stkF || 0)) : t - (+p.stkE || 0);
@@ -1283,8 +1294,8 @@ function tarjetaAvance(r){
     const cerr = Object.keys(r.cier).length;
     stats = '<div class="sub" style="color:var(--mut)">' + esc(r.meta.nombre || 'Inventario') + '</div>'
       + '<div style="height:10px;background:#e3e9ec;border-radius:6px;overflow:hidden;margin:8px 0 6px"><div style="height:100%;width:' + pct + '%;background:' + A.color + '"></div></div>'
-      + '<div style="font-size:24px;font-weight:800;color:' + A.color + '">' + pct.toFixed(pct > 0 && pct < 1 ? 2 : 0) + '% contado</div>'
-      + '<div class="sub">' + hech + ' de ' + tot + ' productos · <b>' + (tot - hech) + '</b> pendientes</div>'
+      + '<div style="font-size:24px;font-weight:800;color:' + A.color + '">' + pct.toFixed(pct > 0 && pct < 1 ? 2 : 0) + '% contado (productos con stock)</div>'
+      + '<div class="sub">' + hech + ' de ' + tot + ' con stock · <b>' + (tot - hech) + '</b> pendientes' + (extra ? ' · ' + extra + ' contados sin stock en sistema' : '') + '</div>'
       + '<div class="sub">Laboratorios cerrados: <b>' + cerr + '</b> de ' + labs.size + '</div>'
       + '<div class="sub">Faltante: <b style="color:var(--red)">' + falta + '</b> · Sobrante: <b style="color:var(--warn)">' + sobra + '</b> · Cuadra: <b style="color:var(--ok)">' + ok + '</b></div>';
   }
