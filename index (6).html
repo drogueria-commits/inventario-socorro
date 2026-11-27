@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=b6445a8d-84bc-4d31-9d91-fa673ebe2622
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=b6445a8d-84bc-4d31-9d91-fa673ebe2622
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de Existencias | Droguería FS</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+:root{--pri:#0f4c5c;--pri2:#16697a;--bg:#f2f5f6;--card:#fff;--txt:#1d2b33;--mut:#6b7b85;--ok:#2a9d8f;--warn:#e9a23b;--red:#d64545;--line:#e3e9ec}
+*{box-sizing:border-box;font-family:"Segoe UI",Roboto,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--txt)}
+header{background:linear-gradient(90deg,var(--pri),var(--pri2));color:#fff;padding:12px 18px;position:sticky;top:0;z-index:10}
+.hrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:700}
+h1{font-size:17px;margin:0}.sub{font-size:11px;opacity:.8}
+.bar{height:6px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;width:220px}
+.bar>i{display:block;height:100%;background:#5ee0c4;width:0}
+.barl{background:var(--line)}.barl>i{background:var(--ok)}
+.pill{background:rgba(0,0,0,.2);padding:5px 10px;border-radius:20px;font-size:12px}
+.pill a{color:#7ff0d6;cursor:pointer;text-decoration:underline;margin-left:6px}
+.btn{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:13px}
+.btn-h{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn-p{background:var(--pri);color:#fff}.btn-g{background:#e9eef0;color:var(--txt)}
+.btn-r{background:#fde8e8;color:var(--red)}
+main{max-width:1150px;margin:0 auto;padding:18px}
+.search{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:16px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.lab{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;transition:.15s}
+.lab:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.lab-h{background:var(--pri);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;font-size:13px;font-weight:700}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.4)}
+.lab-b{padding:14px}
+.lab-top{display:flex;justify-content:space-between;align-items:center}
+.ring{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700}
+.ring span{background:#fff;width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+.lab-name{font-weight:700;margin:10px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-height:22px}
+.chip{font-size:10px;background:#eaf2f4;color:var(--pri);padding:3px 8px;border-radius:10px;font-weight:600}
+.lab-f{display:flex;justify-content:flex-end;align-items:center;gap:8px;border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:12px;color:var(--mut)}
+.cnt{background:var(--pri);color:#fff;padding:3px 10px;border-radius:12px;font-weight:700}
+.layout{display:grid;grid-template-columns:210px 1fr;gap:16px}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+.side{background:#fff;border-radius:12px;padding:10px;height:fit-content}
+.side div{display:flex;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer;font-size:13px}
+.side div.on{background:#e6f3f1;font-weight:700}
+.badge{background:#e9eef0;border-radius:8px;padding:1px 8px;font-size:12px}
+.box{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th{text-align:left;font-size:11px;color:var(--mut);padding:10px;background:#f7f9fa;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+.num{background:var(--pri);color:#fff;border-radius:6px;width:26px;height:26px;display:grid;place-items:center;font-size:12px;font-weight:700}
+.cod{color:var(--pri2);font-size:12px;font-weight:600}.desc{font-weight:600}
+.lotes{font-size:11px;color:var(--mut);margin-top:3px}
+.cbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:20px;padding:3px 3px 3px 10px;font-size:12px;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:50;padding:10px}
+.modal.on{display:grid}
+.mbox{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:520px;max-height:92vh;overflow:auto}
+.mrow{display:grid;grid-template-columns:1fr 1.2fr 1.3fr auto;gap:8px;align-items:end;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px}
+.mrow label{font-size:11px;color:var(--mut);display:block;margin-bottom:3px}
+input{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px}
+.tot{border:3px solid var(--pri);border-radius:50%;width:58px;height:58px;display:grid;place-items:center;text-align:center;font-size:9px;font-weight:700;color:var(--pri)}
+.tot b{font-size:18px;display:block;line-height:1}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.empty{text-align:center;padding:40px;color:var(--mut)}
+.warn{color:var(--warn);font-weight:700}
+.hide{display:none!important}
+header{transition:transform .25s}
+header.oculto{transform:translateY(-100%)}
+@media(max-width:700px){
+header{padding:8px 12px}
+.hrow{gap:6px}
+.logo{display:none}
+h1{font-size:15px}
+.bar{width:120px}
+.pill{padding:3px 8px;font-size:11px}
+.btn-h{padding:5px 10px}
+main{padding:10px}
+.side{display:flex;gap:4px;padding:4px;overflow-x:auto}
+.side div{flex:1;white-space:nowrap;padding:8px 6px;font-size:12px;gap:4px;justify-content:center}
+.box{padding:8px 10px;margin-bottom:8px}
+.search{margin-bottom:8px;padding:9px 12px}
+td{padding:8px 6px}
+}
+</style>
+
+</head>
+<body>
+<header>
+<div class="hrow">
+<button class="btn btn-h hide" id="btnHome" onclick="goHome()">⌂</button>
+<div class="logo">FS</div>
+<div style="flex:1;min-width:200px">
+<h1 id="title">Control de Existencias | Droguería FS</h1>
+<div class="sub" id="subtitle">Inventario</div>
+</div>
+<div>
+<div class="bar"><i id="gBar"></i></div>
+<div class="sub" style="display:flex;justify-content:space-between;gap:20px;margin-top:3px"><span id="gPct">0% completado</span><span id="gFalt"></span></div>
+</div>
+<div class="pill">Resp: <b id="resp">SIN ASIGNAR</b><a onclick="setResp()">Cambiar</a></div>
+<span class="pill" id="estado">● Conectando…</span>
+<button class="btn btn-h" onclick="exportarFormato()">⬇ Excel</button>
+<button class="btn btn-h" onclick="openAdmin()">👤 Admin</button>
+</div>
+</header>
+
+<main>
+<!-- INICIO: laboratorios -->
+<section id="vHome">
+<input class="search" id="qLab" placeholder="Buscar laboratorio o tipo (ej. Fármacos, Genéricos)..." oninput="renderHome()">
+<div class="grid" id="grid"></div>
+</section>
+
+<!-- DETALLE: productos del laboratorio -->
+<section id="vLab" class="hide">
+<div class="layout">
+<div class="side">
+<div id="tPen" onclick="setTab('pen')">📋 Pendientes <span class="badge" id="nPen">0</span></div>
+<div id="tCon" onclick="setTab('con')">✓ Contados <span class="badge" id="nCon">0</span></div>
+<div id="tVen" onclick="setTab('ven')">⚠️ Vcto. Corto <span class="badge" id="nVen">0</span></div>
+</div>
+<div>
+<div id="lCandado" style="margin-bottom:8px"></div>
+<div class="box">
+<div class="bar barl" style="width:100%"><i id="lBar"></i></div>
+<div class="sub" style="display:flex;justify-content:space-between;margin-top:6px;color:var(--mut)"><span id="lPct"></span><span id="lFalt"></span></div>
+</div>
+<input class="search" id="qProd" placeholder="Buscar código o descripción..." oninput="renderLab()">
+<table>
+<thead><tr><th style="width:40px">#</th><th>CÓDIGO / DESCRIPCIÓN / LOTES</th><th style="text-align:right">CONTEO</th></tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+
+<!-- MODAL NOMBRE -->
+<div class="modal" id="mNombre">
+<div class="mbox" style="max-width:380px;text-align:center">
+<div class="logo" style="margin:0 auto 10px;background:var(--pri);color:#fff;width:48px;height:48px;font-size:18px">FS</div>
+<h3 style="margin:0 0 4px">Control de Existencias</h3>
+<p class="sub" style="color:var(--mut);margin:0 0 14px">Escribe tu nombre para empezar a contar</p>
+<input id="nNombre" placeholder="Tu nombre" autocomplete="off" style="text-align:center;font-size:16px" onkeydown="if(event.key==='Enter')guardarNombre()">
+<p id="nErr" class="sub" style="color:var(--red);min-height:16px;margin:6px 0"></p>
+<button class="btn btn-p" style="width:100%;padding:12px" onclick="guardarNombre()">Ingresar</button>
+</div>
+</div>
+
+<!-- MODAL ESCÁNER -->
+<div class="modal" id="mEscaner" style="z-index:60">
+<div class="mbox" style="max-width:420px">
+<div class="row" style="justify-content:space-between;margin-bottom:8px"><b>Escanear código de barras</b>
+<button class="btn btn-g" onclick="cerrarEscaner()">✕</button></div>
+<div id="lector" style="width:100%;min-height:220px;background:#000;border-radius:8px;overflow:hidden"></div>
+<p class="sub" id="escMsg" style="color:var(--mut);text-align:center;margin:8px 0">Apunta la cámara al código de barras</p>
+<label class="btn btn-p" style="display:block;text-align:center;padding:12px;margin:0">📷 ¿No lo lee? Tomar foto del código
+<input type="file" accept="image/*" capture="environment" class="hide" onchange="leerFotoBarra(this)"></label>
+<div id="lectorFoto" class="hide"></div>
+</div>
+</div>
+
+<!-- MODAL CONTEO -->
+<div class="modal" id="mConteo">
+<div class="mbox">
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-weight:700" id="mTitle"></div><div class="sub" style="color:var(--mut)" id="mResp"></div></div>
+<div class="tot">TOTAL<b id="mTot">0</b><span id="mTotU">unid.</span></div>
+</div>
+<!-- Código de barras: DESACTIVADO por ahora (no aprobado). Para reactivarlo, quitar class="hide" de este div. -->
+<div class="hide" id="bloqueBarra" style="margin-bottom:8px">
+<label class="sub" style="color:var(--mut);display:block;margin-bottom:3px">Código de barras (opcional)</label>
+<div class="row" style="flex-wrap:nowrap">
+<input id="mBarra" inputmode="numeric" placeholder="Escanea o escribe" style="flex:1">
+<button class="btn btn-p" style="white-space:nowrap" onclick="abrirEscaner()">📷 Escanear</button>
+</div>
+</div>
+<div id="mFoto" style="margin-bottom:8px"></div>
+<div id="mRows"></div>
+<label class="sub" style="color:var(--mut);display:block;margin-top:6px">Comentario (opcional)</label>
+<textarea id="mComent" rows="2" maxlength="300" placeholder="Ej. caja dañada, falta etiqueta..." style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+<div class="row" style="justify-content:space-between;margin-top:10px">
+<button class="btn btn-r" onclick="limpiarFilas()">Limpiar todo</button>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mConteo')">Cancelar</button><button class="btn btn-p" onclick="guardarConteo()">Guardar Conteo</button></div>
+</div>
+</div>
+</div>
+
+<!-- MODAL VISTA GENERAL (solo admin) -->
+<style>
+#mGeneral .mbox{max-width:1300px;width:100%;height:94vh;max-height:94vh;display:flex;flex-direction:column;padding:16px}
+#gTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+#gCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px}
+#gCards div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}
+#gCards div.on{outline:2px solid var(--pri)}
+#gCards b{display:block;font-size:20px}
+#gCards span{font-size:12px;color:var(--mut)}
+#gFil{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#gFil input,#gFil select{padding:8px;border:1px solid var(--line);border-radius:8px}
+#gWrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px}
+#gTabla{width:100%;border-collapse:collapse;font-size:13px}
+#gTabla th{position:sticky;top:0;background:var(--pri);color:#fff;padding:7px 6px;text-align:left;white-space:nowrap;z-index:1}
+#gTabla td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+#gTabla td.n{text-align:right;white-space:nowrap}
+.gBar{display:flex;gap:4px;margin-top:4px}.gBar input{width:130px;padding:4px 6px;font-size:12px}.gBar button{padding:4px 8px;font-size:12px}
+.gBarOk{font-family:monospace;font-size:12px}
+.gF{color:#c0392b;font-weight:700}.gS{color:#1f6fb2;font-weight:700}.gOk{color:#2a9d8f;font-weight:700}.gP{color:var(--mut)}
+.gL{font-size:11px;color:var(--mut)}
+</style>
+<div class="modal" id="mGeneral">
+<div class="mbox">
+<div id="gTop">
+<h3 style="margin:0">📊 Vista general — conteo vs stock del sistema</h3>
+<div class="row" style="gap:8px">
+<button class="btn btn-p" onclick="exportarGeneral()">⬇ Excel de esta vista</button>
+<button class="btn" onclick="cerrar('mGeneral')">Cerrar</button>
+</div>
+</div>
+<div id="gCards"></div>
+<div id="gFil">
+<input id="gQ" placeholder="Buscar código o descripción..." oninput="renderGeneral()" style="flex:1;min-width:200px">
+<select id="gLab" onchange="renderGeneral()"></select>
+<select id="gEst" onchange="renderGeneral()">
+<option value="">Todos los estados</option><option value="con">Contados</option><option value="pen">Pendientes</option>
+<option value="falta">Con faltante</option><option value="sobra">Con sobrante</option><option value="ok">Cuadra</option>
+</select>
+</div>
+<div id="gWrap"><table id="gTabla"><thead><tr>
+<th>Laboratorio</th><th>Código</th><th>Cód. barras</th><th>Descripción</th><th>Stock sistema</th><th>Contado</th><th>Diferencia</th><th>Estado</th><th>Lotes contados</th><th>Responsable</th>
+</tr></thead><tbody id="gBody"></tbody></table></div>
+<div class="sub" id="gPie" style="color:var(--mut);margin-top:6px"></div>
+</div>
+</div>
+
+<!-- MODAL RECONTEO: LISTA (solo admin) -->
+<style>
+#mReconteo .mbox{max-width:1300px;width:100%;height:94vh;max-height:94vh;display:flex;flex-direction:column;padding:16px}
+#rCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+#rCards div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}
+#rCards div.on{outline:2px solid var(--pri)}
+#rCards b{display:block;font-size:20px}#rCards span{font-size:12px;color:var(--mut)}
+#rFil{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#rFil input,#rFil select{padding:8px;border:1px solid var(--line);border-radius:8px;width:auto}
+#rWrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px}
+#rTabla{width:100%;border-collapse:collapse;font-size:13px}
+#rTabla th{position:sticky;top:0;background:#6a1b9a;color:#fff;padding:7px 6px;text-align:left;white-space:nowrap;z-index:1}
+#rTabla td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+#rTabla td.n{text-align:right;white-space:nowrap}
+.rPill{background:#f3e5f5;color:#6a1b9a;border-radius:8px;padding:2px 8px;font-weight:700;white-space:nowrap}
+#mRecontar .mbox{max-width:860px}
+#rcTabla{width:100%;border-collapse:collapse;font-size:13px}
+#rcTabla th{font-size:11px;color:var(--mut);padding:6px;background:#f7f9fa;text-align:left;white-space:nowrap}
+#rcTabla td{padding:5px;border-bottom:1px solid var(--line);vertical-align:middle}
+#rcTabla input{padding:6px;font-size:13px}
+#rcTabla input[readonly]{background:#f2f5f6;border-color:transparent;font-weight:600}
+</style>
+<div class="modal" id="mReconteo">
+<div class="mbox">
+<div class="row" style="justify-content:space-between;margin-bottom:6px">
+<h3 style="margin:0">🔁 Reconteo — solo administrador</h3>
+<div class="row"><button class="btn btn-p" onclick="exportarReconteo()">⬇ Excel conteo vs reconteo</button><button class="btn" onclick="cerrar('mReconteo')">Cerrar</button></div>
+</div>
+<p class="sub" style="color:var(--mut);margin:0 0 8px">El reconteo se guarda aparte: <b>no cambia</b> el conteo original del personal. En el Excel salen las dos cantidades por lote y vencimiento.</p>
+<div id="rCards"></div>
+<div id="rFil">
+<input id="rQ" placeholder="Buscar código o descripción..." oninput="renderReconteo()" style="flex:1;min-width:200px">
+<select id="rLab" onchange="renderReconteo()"></select>
+<select id="rEst" onchange="rFiltroCard='';renderReconteo()">
+<option value="">Todos los productos</option><option value="con" selected>Contados</option><option value="difsis">Contados con diferencia vs sistema</option>
+<option value="reco">Reconteados</option><option value="sinreco">Contados sin reconteo</option><option value="dist">Reconteo distinto al conteo</option><option value="igual">Reconteo igual al conteo</option>
+</select>
+</div>
+<div id="rWrap"><table id="rTabla"><thead><tr>
+<th>Laboratorio</th><th>Código</th><th>Descripción</th><th>Stock sistema</th><th>Contado</th><th>Reconteo</th><th>Dif. (reconteo − conteo)</th><th>Lotes</th><th></th>
+</tr></thead><tbody id="rBody"></tbody></table></div>
+<div class="sub" id="rPie" style="color:var(--mut);margin-top:6px"></div>
+</div>
+</div>
+
+<!-- MODAL RECONTAR UN PRODUCTO (solo admin) -->
+<div class="modal" id="mRecontar" style="z-index:65">
+<div class="mbox">
+<div style="font-weight:700" id="rcTitulo"></div>
+<div class="sub" style="color:var(--mut);margin-bottom:10px" id="rcSub"></div>
+<div style="overflow-x:auto"><table id="rcTabla"><thead><tr>
+<th>Lote</th><th>Vence (MM/AA)</th><th style="text-align:right">Contado</th><th id="rcThR">Reconteo</th><th>Observación del lote</th><th></th>
+</tr></thead><tbody id="rcBody"></tbody></table></div>
+<button class="btn btn-g" style="margin-top:8px" onclick="agregarLoteReco()">+ Agregar lote encontrado en el reconteo</button>
+<label class="sub" style="color:var(--mut);display:block;margin-top:10px">Observación general del reconteo</label>
+<textarea id="rcObs" rows="2" maxlength="400" placeholder="Ej. se encontró mercadería en otra ubicación..." style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+<p class="sub" style="color:var(--mut);margin:6px 0 0">Deja vacío el reconteo de un lote si no lo volviste a contar. Escribe 0 si no encontraste nada.</p>
+<div class="row" style="justify-content:space-between;margin-top:10px">
+<button class="btn btn-r" id="rcQuitar" onclick="quitarReconteo()">Quitar reconteo</button>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mRecontar')">Cancelar</button><button class="btn btn-p" onclick="guardarReconteo()">Guardar reconteo</button></div>
+</div>
+</div>
+</div>
+
+<!-- MODAL VER FOTO DEL CÓDIGO (admin) -->
+<div class="modal" id="mFotoVer" style="z-index:70">
+<div class="mbox" style="max-width:560px;text-align:center">
+<div class="row" style="justify-content:space-between;margin-bottom:8px"><b id="fvTitulo">Foto del código</b>
+<button class="btn btn-g" onclick="cerrar('mFotoVer')">✕</button></div>
+<div id="fvImg" class="sub" style="color:var(--mut)">Cargando foto...</div>
+<p class="sub" id="fvInfo" style="color:var(--mut);margin:8px 0 0"></p>
+</div>
+</div>
+
+<!-- MODAL LOGIN ADMIN -->
+<div class="modal" id="mLogin">
+<div class="mbox" style="max-width:380px">
+<h3 style="margin-top:0">🔐 Acceso Administrador</h3>
+<p class="sub" style="color:var(--mut)">Solo el administrador puede cargar productos, reabrir laboratorios, restaurar o borrar el inventario.</p>
+<div style="margin-bottom:10px"><label class="sub" style="color:var(--mut)">Correo</label>
+<input id="lEmail" type="email" autocomplete="username" placeholder="correo@fssocorro.com"></div>
+<div style="margin-bottom:6px"><label class="sub" style="color:var(--mut)">Contraseña</label>
+<input id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrarAdmin()"></div>
+<div id="lMsg" class="sub" style="color:#c0392b;min-height:18px;margin-bottom:8px"></div>
+<div class="row">
+<button class="btn btn-p" id="lBtn" onclick="entrarAdmin()">Ingresar</button>
+<button class="btn" onclick="cerrar('mLogin')">Cancelar</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL AVANCE POR ALMACÉN (solo admin) -->
+<div class="modal" id="mAvance">
+<div class="mbox" style="max-width:760px;width:100%">
+<h3 style="margin-top:0">🏬 Avance por almacén</h3>
+<div id="avBody"></div>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mAvance')">Cerrar</button><button class="btn btn-p" onclick="abrirAvance()">↻ Actualizar</button></div>
+</div>
+</div>
+<!-- MODAL ADMIN -->
+<div class="modal" id="mAdmin">
+<div class="mbox">
+<h3 style="margin-top:0">Administración</h3>
+<div class="sub" style="color:var(--mut);margin:-6px 0 12px;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Sesión: <b id="aUser"></b></span><button class="btn" onclick="salirAdmin()">Cerrar sesión</button></div>
+<button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirGeneral()">📊 Vista general: conteo vs stock (todos los laboratorios)</button>
+<button class="btn" style="width:100%;margin-bottom:14px;background:#6a1b9a;color:#fff" onclick="abrirReconteo()">🔁 Reconteo (no modifica el conteo original)</button>
+<button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirAvance()">🏬 Avance por almacén y enlaces/QR para el personal</button>
+<div style="margin-bottom:10px"><label class="sub" style="color:var(--mut)">Nombre del inventario</label>
+<input id="aNombre" placeholder="Inventario Noviembre 2026"></div>
+<div style="margin-bottom:14px"><label class="sub" style="color:var(--mut)">Meses para "Vcto. corto"</label>
+<input id="aMeses" type="number" min="1" value="6" style="width:90px"></div>
+<p class="sub" style="color:var(--mut)">1) Carga la lista de productos (Excel o CSV) con columnas: <b>Laboratorio, Tipo, CodPro, Descripción Producto</b> (opcional: Frac, Stk_E, Stk_F). Reemplaza el inventario para todos.</p>
+<input type="file" id="aFile" accept=".xlsx,.xls,.csv" style="margin-bottom:10px">
+<div class="row" style="margin-bottom:14px">
+<button class="btn btn-p" onclick="importar()">Cargar productos</button>
+<button class="btn btn-g" onclick="plantilla()">Descargar plantilla</button>
+</div>
+<p class="sub" style="color:var(--mut)">2) Al terminar, exporta el resultado del conteo.</p>
+<div class="row" style="margin-bottom:14px">
+<button class="btn btn-p" onclick="exportar()">Reporte de diferencias</button>
+<button class="btn btn-g" onclick="respaldo()">Guardar respaldo (.json)</button>
+<label class="btn btn-g" style="margin:0">Restaurar respaldo<input type="file" accept=".json" class="hide" onchange="restaurar(this)"></label>
+</div>
+<p class="sub" style="color:var(--mut)">3) Laboratorios cerrados (solo aquí se pueden reabrir).</p>
+<div id="aCierres" style="max-height:200px;overflow:auto;margin-bottom:14px"></div>
+<div class="row" style="justify-content:space-between">
+<button class="btn btn-r" onclick="borrarTodo()">Borrar todo el inventario</button>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mAdmin')">Cerrar</button><button class="btn btn-p" onclick="guardarAdmin()">Guardar</button></div>
+</div>
+</div>
+</div>
+
+<script type="text/plain" id="appMain">
+// =====================================================================
+//  1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+// =====================================================================
+const firebaseConfig = {
+apiKey: "AIzaSyBSLQU-PcBA0R53s3d8AQNPU095TxDJj30",
+authDomain: "inventario-drogueria-fs.firebaseapp.com",
+databaseURL: "https://inventario-drogueria-fs-default-rtdb.firebaseio.com",
+projectId: "inventario-drogueria-fs",
+storageBucket: "inventario-drogueria-fs.firebasestorage.app",
+messagingSenderId: "620233359358",
+appId: "1:620233359358:web:a2a74380636bd83fb80aaf"
+};
+// =====================================================================
+
+let META = {nombre:'Inventario', meses:6}, PRODS = {}, CONT = {}, CIERRES = {};
+let cargado = {meta:false, prod:false, cont:false, cier:false};
+let LABS = [], labActual = null, tab = 'pen', prodActual = null;
+let resp = localStorage.getItem('inv_resp') || '';
+let ref = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ----- Conexión -----
+function iniciar(){
+if(firebaseConfig.apiKey === 'PEGA_AQUI'){
+document.getElementById('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">⚙️ Falta configurar Firebase.<br>Abre este archivo con el Bloc de notas y pega tu configuración donde dice <b>PEGA_AQUI</b>.</div>';
+estado('● Sin configurar', '#ffb4b4'); return;
+}
+try{ firebase.initializeApp(firebaseConfig); }catch(e){ alert('Configuración de Firebase no válida.'); return; }
+const db = firebase.database();
+ref = db.ref(ALM.path);
+document.getElementById('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Cargando inventario desde la base de datos...</div>';
+db.ref('.info/connected').on('value', s => s.val() ? estado('● En línea', '#7ff0d6') : estado('● Sin conexión', '#ffb4b4'));
+const err = e => { console.error(e); alert('Firebase rechazó la lectura. Revisa las reglas de la base de datos.'); };
+ref.child('meta').on('value', s => { META = Object.assign({nombre:'Inventario', meses:6}, s.val()||{}); cargado.meta=true; render(); }, err);
+ref.child('productos').on('value', s => { PRODS = s.val()||{}; cargado.prod=true; render(); }, err);
+ref.child('conteos').on('value', s => { CONT = s.val()||{}; cargado.cont=true; render(); }, err);
+ref.child('cierres').on('value', s => { CIERRES = s.val()||{}; cargado.cier=true; render(); if(document.getElementById('mAdmin').classList.contains('on')) renderCierres(); }, err);
+}
+function estado(t, c){ const e = document.getElementById('estado'); e.textContent = t; e.style.color = c; }
+// ----- Cierre de laboratorios (candado) -----
+const labKey = lab => lab.replace(/[.#$\[\]\/]/g, '_');
+const cerrado = lab => !!CIERRES[labKey(lab)];
+function cerrarLab(lab){
+if(cerrado(lab)) { alert('Este laboratorio ya está cerrado. Solo Admin puede reabrirlo.'); return; }
+const prods = lista().filter(p => p.lab === lab), falt = prods.filter(p => !contado(p)).length;
+if(!confirm('¿Cerrar ' + lab + '?' + (falt ? '\n\nOjo: aún faltan ' + falt + ' productos por contar.' : '') + '\n\nUna vez cerrado ya no se podrá editar.')) return;
+ref.child('cierres/' + labKey(lab)).set({lab, por: resp || 'SIN NOMBRE', fecha: firebase.database.ServerValue.TIMESTAMP})
+.catch(e => alert('No se pudo cerrar: ' + e.message));
+}
+function reabrirLab(key){
+const c = CIERRES[key]; if(!c) return;
+if(confirm('¿Reabrir ' + c.lab + ' para que se pueda editar otra vez?')) ref.child('cierres/' + key).remove();
+}
+function renderCierres(){
+const el = document.getElementById('aCierres'); const ks = Object.keys(CIERRES);
+el.innerHTML = ks.length ? ks.sort((a,b)=>CIERRES[a].lab.localeCompare(CIERRES[b].lab)).map(k => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
+<span style="font-size:13px">🔒 <b>${esc(CIERRES[k].lab)}</b><br><span class="sub" style="color:var(--mut)">${esc(CIERRES[k].por)} · ${fmtFecha(CIERRES[k].fecha)}</span></span>
+<button class="btn btn-g" onclick="reabrirLab('${k}')">Reabrir</button></div>`).join('')
+: '<p class="sub" style="color:var(--mut)">Ningún laboratorio cerrado.</p>';
+}
+
+function render(){ if(!(cargado.meta && cargado.prod && cargado.cont && cargado.cier)) return; labActual ? renderLab() : renderHome(); if(typeof renderGeneral === "function") renderGeneral(); if(typeof renderReconteo === "function") renderReconteo(); }
+
+// ----- Helpers -----
+function lista(){ return Object.entries(PRODS).map(([k,p]) => ({k, ...p, c: CONT[k]||null})); }
+const contado = p => !!p.c;
+const filasDe = p => (p.c && p.c.filas) ? p.c.filas : [];
+const total = p => filasDe(p).reduce((a,f)=>a+(+f.cant||0),0);
+// ----- Enteros + fracciones (almacenes con "fracciones: true", ej. Canjes) -----
+const FR = !!(ALM && ALM.fracciones);
+const totalF = p => filasDe(p).reduce((a,f)=>a+(+f.fr||0),0);
+const txtEF = (e, f) => e + ' ent.' + (f ? ' + ' + f + ' fr.' : '');
+function fmtDif(p, d){ if(!FR) return d; const fx = +p.frac||1, a = Math.abs(d), e = Math.floor(a/fx), f = a % fx; return (d<0?'-':'') + (f ? e + ' ent. + ' + f + ' fr.' : e + ' ent.'); }
+function cantLlena(r){ const f = r.querySelector('.ff'); return r.querySelector('.fc').value !== '' || (!!f && f.value !== ''); }
+function vctoCorto(p){
+const lim = new Date(); lim.setMonth(lim.getMonth() + (+META.meses||6));
+return filasDe(p).some(f => { if(!f.venc || !(+f.cant || +f.fr)) return false;
+const [y,m] = f.venc.split('-').map(Number); return new Date(y, m, 0) <= lim; });
+}
+const fmtVenc = v => v ? vencTxt(v) : '';  // AAAA-MM -> MM/AA
+const fmtFecha = t => t ? new Date(t).toLocaleString('es-PE') : '';
+
+// ----- Encabezado -----
+function renderHeader(){
+const L = lista(), tot = L.length, hech = L.filter(contado).length;
+const pct = tot ? hech/tot*100 : 0;
+document.getElementById('gBar').style.width = pct + '%';
+document.getElementById('gPct').textContent = pct.toFixed(pct>0&&pct<1?2:0) + '% completado';
+document.getElementById('gFalt').textContent = 'Faltan ' + (tot-hech) + ' productos';
+document.getElementById('resp').textContent = resp || 'SIN ASIGNAR';
+document.getElementById('subtitle').textContent = labActual ? 'Control de Existencias • ' + META.nombre : META.nombre;
+}
+function setResp(){
+document.getElementById('nNombre').value = resp;
+document.getElementById('nErr').textContent = '';
+document.getElementById('mNombre').classList.add('on');
+setTimeout(()=>document.getElementById('nNombre').focus(), 50);
+}
+function guardarNombre(){
+const r = document.getElementById('nNombre').value.trim().toUpperCase();
+if(r.length < 2){ document.getElementById('nErr').textContent = 'Escribe tu nombre.'; return; }
+resp = r; try{ localStorage.setItem('inv_resp', resp); }catch(e){}
+cerrar('mNombre'); renderHeader();
+}
+
+// ----- Inicio: laboratorios -----
+function renderHome(){
+renderHeader();
+const m = {};
+lista().forEach(p => {
+if(!m[p.lab]) m[p.lab] = {nombre:p.lab, tipos:new Set(), tot:0, hech:0};
+if(p.tipo) m[p.lab].tipos.add(p.tipo);
+m[p.lab].tot++; if(contado(p)) m[p.lab].hech++;
+});
+LABS = Object.values(m).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+const g = document.getElementById('grid');
+if(!LABS.length){ g.innerHTML = '<div class="empty" style="grid-column:1/-1">No hay productos cargados.<br><br><button class="btn btn-p" onclick="openAdmin()">Cargar productos</button></div>'; return; }
+const q = document.getElementById('qLab').value.toLowerCase();
+g.innerHTML = LABS.map((l,i) => ({l,i})).filter(({l}) =>
+l.nombre.toLowerCase().includes(q) || [...l.tipos].some(t=>t.toLowerCase().includes(q))
+).map(({l,i}) => {
+const pct = Math.round(l.tot ? l.hech/l.tot*100 : 0);
+return `<div class="lab" onclick="abrirLab(${i})">
+<div class="lab-h"><span>N° ${i+1}</span>${cerrado(l.nombre) ? '<span class="tag" style="background:#d64545;border-color:#d64545">🔒 Cerrado</span>'
+: `<span class="tag" style="cursor:pointer" title="Cerrar laboratorio" onclick="event.stopPropagation();cerrarLab(LABS[${i}].nombre)">🔓 ${pct===100?'Completo · Cerrar':'Abierto'}</span>`}</div>
+<div class="lab-b">
+<div class="lab-top"><span style="font-size:26px">📁</span>
+<div class="ring" style="background:conic-gradient(var(--ok) ${pct*3.6}deg,#dfe7ea 0)"><span>${pct}%</span></div></div>
+<div class="lab-name">${esc(l.nombre)}</div>
+<div class="chips">${[...l.tipos].map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
+<div class="lab-f">Faltan ${l.tot-l.hech} <span class="cnt">${l.hech} / ${l.tot}</span></div>
+</div></div>`;
+}).join('') || '<div class="empty" style="grid-column:1/-1">Sin resultados.</div>';
+}
+
+// ----- Detalle de laboratorio -----
+function abrirLab(i){
+labActual = LABS[i].nombre; tab = 'pen';
+document.getElementById('qProd').value = '';
+document.getElementById('vHome').classList.add('hide');
+document.getElementById('vLab').classList.remove('hide');
+document.getElementById('btnHome').classList.remove('hide');
+document.getElementById('title').textContent = labActual;
+renderLab(); window.scrollTo(0,0);
+}
+function goHome(){
+labActual = null;
+document.getElementById('vLab').classList.add('hide');
+document.getElementById('vHome').classList.remove('hide');
+document.getElementById('btnHome').classList.add('hide');
+tituloAlm();
+render();
+}
+function setTab(t){ tab = t; renderLab(); }
+
+function renderLab(){
+renderHeader();
+const prods = lista().filter(p => p.lab === labActual).sort((a,b)=>a.desc.localeCompare(b.desc));
+const pen = prods.filter(p=>!contado(p)), con = prods.filter(contado), ven = prods.filter(vctoCorto);
+document.getElementById('nPen').textContent = pen.length;
+document.getElementById('nCon').textContent = con.length;
+document.getElementById('nVen').textContent = ven.length;
+['Pen','Con','Ven'].forEach(k => document.getElementById('t'+k).classList.toggle('on', tab===k.toLowerCase()));
+const pct = prods.length ? con.length/prods.length*100 : 0;
+document.getElementById('lBar').style.width = pct+'%';
+document.getElementById('lPct').textContent = Math.round(pct)+'% completado';
+document.getElementById('lFalt').textContent = 'Faltan '+pen.length+' productos';
+const cand = document.getElementById('lCandado');
+if(cerrado(labActual)){ const c = CIERRES[labKey(labActual)];
+cand.innerHTML = `<div class="box" style="background:#fde8e8;color:#9b1c1c;margin:0;font-size:13px">🔒 <b>Laboratorio cerrado</b> por ${esc(c.por)} · ${fmtFecha(c.fecha)}. Ya no se puede editar.</div>`; }
+else cand.innerHTML = `<button class="btn btn-g" style="width:100%" onclick="cerrarLab(labActual)">🔓 Cerrar laboratorio (ya no se podrá editar)</button>`;
+
+const q = document.getElementById('qProd').value.toLowerCase();
+const vista = (tab==='pen'?pen:tab==='con'?con:ven).filter(p =>
+String(p.cod).toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || (p.c && String(p.c.barra||'').includes(q)));
+const tb = document.getElementById('tbody');
+if(!vista.length){ tb.innerHTML = '<tr><td colspan="3" class="empty">No hay productos en esta vista.</td></tr>'; return; }
+tb.innerHTML = vista.map((p,i) => {
+const lotes = filasDe(p).filter(f=>+f.cant||+f.fr).map(f=>`${f.lote||'s/l'} (${FR ? txtEF(+f.cant||0, +f.fr||0) : f.cant}${f.venc?' · '+fmtVenc(f.venc):''})`).join(' · ');
+return `<tr style="cursor:${cerrado(p.lab)?'default':'pointer'}" onclick="abrirConteo('${p.k}')">
+<td><div class="num">${i+1}</div></td>
+<td><div class="cod">${esc(p.cod)}</div><div class="desc">${esc(p.desc)}</div>
+${lotes?`<div class="lotes">${vctoCorto(p)?'<span class="warn">⚠ </span>':''}${esc(lotes)}</div>`:''}
+${p.c&&p.c.barra?`<div class="lotes">▮▯▮ ${esc(p.c.barra)}</div>`:''}
+${p.c&&p.c.foto?`<div class="lotes">📷 Foto del código guardada</div>`:''}
+${p.c&&p.c.coment?`<div class="lotes" style="color:var(--pri2)">💬 ${esc(p.c.coment)}</div>`:''}
+${p.c?`<div class="lotes">Contó: ${esc(p.c.por)} · ${fmtFecha(p.c.fecha)}</div>`:''}</td>
+<td style="text-align:right"><span class="cbtn">${FR ? txtEF(total(p), totalF(p)) : total(p) + ' unid.'}
+<button class="btn btn-p" style="padding:5px 10px;border-radius:16px" >${contado(p)?'✎ Editar':'+ Contar'}</button></span></td></tr>`;
+}).join('');
+}
+
+// ----- Modal de conteo -----
+function vencTxt(v){ if(!v) return ''; const [y,m] = v.split('-'); return m + '/' + y.slice(2); }  // 2027-05 -> 05/27
+function filaHTML(i, f){
+return `<div class="mrow">
+${FR ? `<div><label>Enteros + Fracciones (Lote ${i})</label><div style="display:flex;gap:6px"><input type="text" inputmode="numeric" class="fc" style="min-width:0;width:50%" value="${esc(f.cant)}" placeholder="Enteros" title="Enteros (cajas)" oninput="soloNum(this);cambio()"><input type="text" inputmode="numeric" class="ff" style="min-width:0;width:50%" value="${esc(f.fr ?? '')}" placeholder="Fracc." title="Fracciones (unidades sueltas)" oninput="soloNum(this);cambio()"></div></div>`
+: `<div><label>Cantidad (Lote ${i})</label><input type="text" inputmode="numeric" class="fc" value="${esc(f.cant)}" placeholder="0" oninput="soloNum(this);cambio()"></div>`}
+<div><label>Lote ${i}</label><input class="fl" value="${esc(f.lote)}" placeholder="Ej. L1234" oninput="cambio()"></div>
+<div><label>Vencimiento ${i}</label><input type="text" inputmode="numeric" class="fv" maxlength="5" value="${esc(vencTxt(f.venc))}" placeholder="MM/AA" oninput="mascara(this);cambio()"></div>
+<button class="btn btn-r" onclick="quitarFila(this)" title="Quitar lote">✕</button>
+<div class="ferr" style="grid-column:1/-1;color:var(--red);font-size:11px;display:none"></div></div>`;
+}
+function soloNum(el){ el.value = el.value.replace(/\D/g,'').slice(0,7); }
+function mascara(el){
+let d = el.value.replace(/\D/g,'').slice(0,4);
+if(+d[0] > 1) d = '0' + d.slice(0,3);   // meses 2-9 -> "02".."09"; con 1 se espera el 2º dígito (10, 11, 12)
+el.value = d.length > 2 ? d.slice(0,2) + '/' + d.slice(2) : d;
+}
+// MM/AA -> 'AAAA-MM' (26 = 2026, hasta 60 = 2060). '' si está vacía, null si es inválida
+function leerVenc(txt){
+if(!txt) return '';
+const m = txt.match(/^(\d{2})\/(\d{2})$/); if(!m) return null;
+const mes = +m[1], an = 2000 + +m[2];
+if(mes < 1 || mes > 12 || an < 2000 || an > 2060) return null;
+return an + '-' + m[1];
+}
+function filaCompleta(r){
+return cantLlena(r) && r.querySelector('.fl').value.trim() !== '' && !!leerVenc(r.querySelector('.fv').value);
+}
+// Cada vez que se completa el último lote, aparece uno nuevo vacío
+function cambio(){
+const cont = document.getElementById('mRows');
+let rows = [...cont.querySelectorAll('.mrow')];
+rows.forEach(r => {
+const v = r.querySelector('.fv').value, e = r.querySelector('.ferr');
+const mal = /^\d{2}\/\d{2}$/.test(v) && leerVenc(v) === null;
+e.textContent = mal ? 'Fecha no válida: mes 01-12 (ej. 05/27).' : '';
+e.style.display = mal ? 'block' : 'none';
+});
+if(filaCompleta(rows[rows.length-1])){
+cont.insertAdjacentHTML('beforeend', filaHTML(rows.length+1, {cant:'',lote:'',venc:''}));
+const nueva = cont.lastElementChild;
+nueva.scrollIntoView({block:'nearest', behavior:'smooth'});
+nueva.querySelector('.fc').focus();
+}
+renumerar(); sumar();
+}
+function renumerar(){
+[...document.querySelectorAll('#mRows .mrow')].forEach((r,i) => {
+const l = r.querySelectorAll('label');
+l[0].textContent = (FR ? 'Enteros + Fracciones (Lote ' : 'Cantidad (Lote ')+(i+1)+')'; l[1].textContent = 'Lote '+(i+1); l[2].textContent = 'Vencimiento '+(i+1);
+});
+}
+function quitarFila(b){
+const rows = document.querySelectorAll('#mRows .mrow');
+if(rows.length === 1){ b.parentElement.querySelectorAll('input').forEach(i=>i.value=''); }
+else b.parentElement.remove();
+const rs = [...document.querySelectorAll('#mRows .mrow')];
+if(filaCompleta(rs[rs.length-1])) document.getElementById('mRows').insertAdjacentHTML('beforeend', filaHTML(rs.length+1, {cant:'',lote:'',venc:''}));
+renumerar(); sumar();
+}
+function abrirConteo(k){
+if(!resp){ setResp(); return; }
+if(cerrado(PRODS[k].lab)){ alert('🔒 Este laboratorio está cerrado. Ya no se puede editar.'); return; }
+prodActual = k;
+const p = {k, ...PRODS[k], c: CONT[k]||null};
+document.getElementById('mTitle').textContent = p.cod + ' – ' + p.desc;
+document.getElementById('mResp').textContent = 'Responsable: ' + resp + (p.c && p.c.por !== resp ? '  (último conteo: ' + p.c.por + ')' : '');
+const filas = [...filasDe(p), {cant:'',lote:'',venc:''}];
+document.getElementById('mRows').innerHTML = filas.map((f,i)=>filaHTML(i+1,f)).join('');
+sumar();
+document.getElementById('mConteo').classList.add('on');
+document.getElementById('mComent').value = (p.c && p.c.coment) || '';
+document.getElementById('mBarra').value = (p.c && p.c.barra) || '';
+fotoPend = null; fotoQuitar = false; fotoExiste = !!(p.c && p.c.foto); mostrarFoto();
+setTimeout(()=>{ const r = document.querySelectorAll('#mRows .fc'); r[r.length-1].focus(); }, 50);
+}
+function sumar(){ let t = 0, f = 0; document.querySelectorAll('#mRows .fc').forEach(i => t += +i.value||0); document.querySelectorAll('#mRows .ff').forEach(i => f += +i.value||0);
+document.getElementById('mTot').textContent = FR ? t + ' ent. + ' + f + ' fr.' : t; const u = document.getElementById('mTotU'); if(u) u.style.display = FR ? 'none' : ''; }
+function limpiarFilas(){ document.getElementById('mRows').innerHTML = filaHTML(1,{cant:'',lote:'',venc:''}); sumar(); }
+function cerrar(id){ document.getElementById(id).classList.remove('on'); }
+
+function guardarConteo(){
+if(cerrado(PRODS[prodActual].lab)){ alert('🔒 El laboratorio se cerró mientras contabas. No se guardó.'); cerrar('mConteo'); return; }
+const filas = []; let n = 0;
+for(const r of document.querySelectorAll('#mRows .mrow')){
+n++;
+const ffv = r.querySelector('.ff') ? r.querySelector('.ff').value : '';
+const cant = (r.querySelector('.fc').value === '' && ffv !== '') ? '0' : r.querySelector('.fc').value, lote = r.querySelector('.fl').value.trim().toUpperCase(), vt = r.querySelector('.fv').value.trim();
+if(cant === '' && !lote && !vt) continue;                      // fila vacía: se ignora
+const falta = [cant === '' ? 'cantidad' : '', !lote ? 'lote' : '', !vt ? 'vencimiento' : ''].filter(Boolean);
+if(falta.length){ alert('Lote ' + n + ': falta ' + falta.join(', ') + '. Completa los 3 datos (cantidad, lote y vencimiento).'); return; }
+const venc = leerVenc(vt);
+if(venc === null){ alert('Lote ' + n + ': la fecha "' + vt + '" no es válida. Usa MM/AA (ej. 05/27).'); return; }
+const fx = +PRODS[prodActual].frac || 1;
+if(FR && fx > 1 && (+ffv||0) >= fx){ alert('Lote ' + n + ': las fracciones (' + ffv + ') deben ser menores que el Frac del producto (' + fx + '). Pásalas a enteros.'); return; }
+filas.push(FR ? {cant:+cant, fr:+ffv||0, lote, venc} : {cant:+cant, lote, venc});
+}
+const coment = document.getElementById('mComent').value.trim();
+const barra = document.getElementById('mBarra').value.trim();
+if(!filas.length && (coment || barra || fotoPend)){ alert('Para guardar, completa al menos un lote (cantidad, lote y vencimiento).'); return; }
+const k = prodActual, r = ref.child('conteos/' + k), fr = ref.child('fotos/' + k);
+const foto = !!fotoPend || (fotoExiste && !fotoQuitar);
+const opFoto = fotoPend ? fr.set({img: fotoPend, por: resp, fecha: firebase.database.ServerValue.TIMESTAMP})
+: (fotoQuitar ? fr.remove() : Promise.resolve());
+const op = filas.length
+? opFoto.then(() => r.set({filas, coment, barra, foto, por: resp, fecha: firebase.database.ServerValue.TIMESTAMP}))
+: r.remove().then(() => fr.remove());   // sin lotes = vuelve a Pendiente
+op.then(()=>cerrar('mConteo')).catch(e => alert('No se pudo guardar: ' + e.message));
+}
+
+// ----- Lector de código de barras (cámara del celular) -----
+let escaner = null;
+function abrirEscaner(){
+if(typeof Html5Qrcode === 'undefined'){ alert('No cargó el lector. Revisa tu internet; también puedes escribir el código a mano.'); return; }
+document.getElementById('mEscaner').classList.add('on');
+document.getElementById('escMsg').textContent = 'Apunta la cámara al código de barras';
+const F = Html5QrcodeSupportedFormats;
+escaner = new Html5Qrcode('lector', { formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE],
+experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+escaner.start({ facingMode: 'environment' }, { fps: 10, qrbox: (w,h) => ({ width: Math.min(w*0.9, 320), height: Math.min(h*0.5, 140) }) },
+txt => { document.getElementById('mBarra').value = txt; if(navigator.vibrate) navigator.vibrate(100); cerrarEscaner(); },
+() => {})
+.catch(e => { document.getElementById('escMsg').textContent = 'No se pudo abrir la cámara. Da permiso a la cámara en el navegador.'; });
+}
+function cerrarEscaner(){
+document.getElementById('mEscaner').classList.remove('on');
+if(escaner){ const e = escaner; escaner = null; e.stop().then(()=>e.clear()).catch(()=>{}); }
+}
+
+function cargarTesseract(){
+return new Promise((ok, mal) => {
+if(window.Tesseract) return ok();
+const sc = document.createElement('script');
+sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+sc.onload = ok; sc.onerror = () => mal(new Error('No cargó el lector de texto.'));
+document.head.appendChild(sc);
+});
+}
+// ----- Código de barras desde una foto (para celulares que no lo leen en vivo) -----
+let ocrNum = null;
+// Foto del código cuando no se puede leer: se guarda con el conteo
+let fotoPend = null, fotoQuitar = false, fotoExiste = false;
+function mostrarFoto(){
+const el = document.getElementById('mFoto');
+if(fotoPend) el.innerHTML = `<div class="row" style="flex-wrap:nowrap;background:#fff7e6;border:1px solid #f3d08a;border-radius:8px;padding:6px">
+<img src="${fotoPend}" style="height:52px;border-radius:6px">
+<span class="sub" style="color:var(--txt);flex:1">📷 No se leyó el código. La foto se guardará con este conteo.</span>
+<button class="btn btn-r" onclick="quitarFoto()" title="Quitar foto">✕</button></div>`;
+else if(fotoExiste && !fotoQuitar) el.innerHTML = `<div class="row" style="flex-wrap:nowrap;background:#eef6f8;border-radius:8px;padding:6px">
+<span class="sub" style="color:var(--txt);flex:1">📷 Este producto ya tiene una foto del código guardada.</span>
+<button class="btn btn-r" onclick="quitarFoto()" title="Quitar foto">✕</button></div>`;
+else el.innerHTML = '';
+}
+function quitarFoto(){ fotoPend = null; if(fotoExiste) fotoQuitar = true; mostrarFoto(); }
+function eanValido(c){
+if(!/^\d{8}$|^\d{12,14}$/.test(c)) return false;
+const d = c.split('').map(Number), chk = d.pop();
+const sum = d.reverse().reduce((a,x,i)=>a + x*(i%2===0?3:1), 0);
+return (10 - sum % 10) % 10 === chk;
+}
+function achicar(file, maxW){
+return new Promise((ok, mal) => {
+const img = new Image(); img.onload = () => {
+const e = Math.min(1, maxW / Math.max(img.width, img.height));
+const c = document.createElement('canvas'); c.width = Math.round(img.width*e); c.height = Math.round(img.height*e);
+c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(img.src); ok(c);
+}; img.onerror = mal; img.src = URL.createObjectURL(file);
+});
+}
+async function leerFotoBarra(inp){
+const f = inp.files[0]; inp.value = ''; if(!f) return;
+const msg = document.getElementById('escMsg');
+msg.textContent = 'Leyendo la foto...';
+if(escaner){ const e = escaner; escaner = null; try{ await e.stop(); e.clear(); }catch(x){} }
+let codigo = '';
+// 1) Leer las barras de la foto
+try{
+if('BarcodeDetector' in window){
+const det = new BarcodeDetector(); const bm = await createImageBitmap(f);
+const r = await det.detect(bm); if(r.length) codigo = r[0].rawValue;
+}
+}catch(e){}
+if(!codigo && typeof Html5Qrcode !== 'undefined'){
+try{ codigo = await new Html5Qrcode('lectorFoto').scanFile(f, false); }catch(e){}
+}
+// 2) Si no, leer los números impresos debajo de las barras
+if(!codigo){
+msg.textContent = 'No se ven las barras; leyendo los números impresos...';
+try{
+await cargarTesseract();
+if(!ocrNum){ ocrNum = await Tesseract.createWorker('eng'); await ocrNum.setParameters({ tessedit_char_whitelist: '0123456789 ' }); }
+const { data } = await ocrNum.recognize(await achicar(f, 2000));
+const cands = [];
+data.text.split(/\n+/).forEach(l => { const d = l.replace(/[^\d]/g,''); for(const m of d.matchAll(/\d{8,14}/g)) cands.push(m[0]); });
+codigo = cands.find(eanValido) || cands.sort((a,b)=>b.length-a.length)[0] || '';
+if(codigo && !eanValido(codigo)) msg.textContent = 'Revisa el número: puede tener algún dígito mal leído.';
+}catch(e){}
+}
+if(codigo){
+document.getElementById('mBarra').value = codigo;
+if(navigator.vibrate) navigator.vibrate(100);
+document.getElementById('mEscaner').classList.remove('on');
+} else {
+try{ fotoPend = (await achicar(f, 700)).toDataURL('image/jpeg', 0.6); fotoQuitar = false; }catch(e){ fotoPend = null; }
+if(fotoPend){ document.getElementById('mEscaner').classList.remove('on'); mostrarFoto(); }
+else msg.textContent = 'No se pudo leer. Toma la foto más cerca y enfocada, o escribe el número a mano.';
+}
+}
+
+// ----- Administración -----
+// ===== MÓDULO ADMINISTRADOR (login con Firebase Auth) =====
+const ADMIN_EMAILS = ['drogueria@fssocorro.com'];
+function esAdmin(u){ return !!u && ADMIN_EMAILS.includes((u.email||'').toLowerCase()); }
+function openAdmin(){
+if(!ref){ alert('Primero configura Firebase.'); return; }
+const u = firebase.auth().currentUser;
+if(esAdmin(u)){ document.getElementById('aUser').textContent = u.email; return openAdminPanel(); }
+document.getElementById('lMsg').textContent = '';
+document.getElementById('lPass').value = '';
+document.getElementById('mLogin').classList.add('on');
+setTimeout(()=>document.getElementById('lEmail').focus(), 50);
+}
+function entrarAdmin(){
+const email = document.getElementById('lEmail').value.trim().toLowerCase();
+const pass = document.getElementById('lPass').value;
+const msg = document.getElementById('lMsg'), btn = document.getElementById('lBtn');
+if(!email || !pass){ msg.textContent = 'Escribe correo y contraseña.'; return; }
+btn.disabled = true; msg.textContent = 'Verificando…';
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(()=>firebase.auth().signInWithEmailAndPassword(email, pass)).then(cred => {
+if(!esAdmin(cred.user)){ firebase.auth().signOut(); msg.textContent = 'Esta cuenta no tiene permisos de administrador.'; return; }
+cerrar('mLogin'); openAdmin();
+}).catch(e => {
+msg.textContent = (e.code==='auth/too-many-requests') ? 'Demasiados intentos. Espera unos minutos.' : 'Correo o contraseña incorrectos.';
+}).finally(()=>{ btn.disabled = false; });
+}
+function salirAdmin(){
+firebase.auth().signOut().then(()=>{ cerrar('mAdmin'); alert('Sesión de administrador cerrada.'); });
+}
+// ===== VISTA GENERAL (solo admin) =====
+let gFiltroCard = '', gPendiente = false;
+const fotoSinCodigo = p => !!(p.c && p.c.foto && !p.c.barra);
+function celdaBarra(p){
+if(!p.c) return '<span class="gP">—</span>';
+let h = p.c.barra ? '<div class="gBarOk">▮▯▮ ' + esc(p.c.barra) + '</div>' : '';
+if(p.c.foto){
+h += '<div><a class="gL" style="cursor:pointer;color:var(--pri2);text-decoration:underline" onclick="verFoto(\'' + p.k + '\')">📷 Ver foto</a></div>';
+h += '<div class="gBar"><input id="gb_' + p.k + '" inputmode="numeric" placeholder="Digitar código" value="' + esc(p.c.barra || '') + '"' +
+' onkeydown="if(event.key===\'Enter\')guardarBarraAdmin(\'' + p.k + '\')" onblur="setTimeout(()=>{ if(gPendiente) renderGeneral(); }, 300)">' +
+'<button class="btn btn-p" onclick="guardarBarraAdmin(\'' + p.k + '\')">✓</button></div>';
+}
+return h || '<span class="gP">—</span>';
+}
+function guardarBarraAdmin(k){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+const inp = document.getElementById('gb_' + k); if(!inp) return;
+const v = inp.value.replace(/\s+/g, '');
+if(v && !/^\d{6,14}$/.test(v) && !confirm('El código "' + v + '" no parece un código de barras normal (6 a 14 números). ¿Guardarlo igual?')) return;
+inp.blur();
+ref.child('conteos/' + k + '/barra').set(v)
+.then(() => { gPendiente = false; renderGeneral(); })
+.catch(e => alert('No se pudo guardar: ' + e.message));
+}
+function abrirGeneral(){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+const labs = [...new Set(lista().map(p => p.lab))].sort();
+const sel = document.getElementById('gLab'), prev = sel.value;
+sel.innerHTML = '<option value="">Todos los laboratorios</option>' + labs.map(l => '<option>'+esc(l)+'</option>').join('');
+sel.value = prev;
+cerrar('mAdmin');
+document.getElementById('mGeneral').classList.add('on');
+renderGeneral();
+}
+function difDe(p){ if(!contado(p)) return null; if(FR){ const fx = +p.frac||1; return (total(p)*fx + totalF(p)) - ((+p.stkE||0)*fx + (+p.stkF||0)); } return total(p) - (+p.stkE||0); }
+function estadoDe(p){ const d = difDe(p); return d === null ? 'pen' : d < 0 ? 'falta' : d > 0 ? 'sobra' : 'ok'; }
+function filtrarGeneral(){
+const q = (document.getElementById('gQ').value||'').trim().toUpperCase();
+const lab = document.getElementById('gLab').value;
+const est = document.getElementById('gEst').value || gFiltroCard;
+return lista().filter(p => {
+if(lab && p.lab !== lab) return false;
+if(q && !((p.cod||'').toUpperCase().includes(q) || (p.desc||'').includes(q))) return false;
+const e = estadoDe(p);
+if(est === 'con') return e !== 'pen';
+if(est === 'foto') return fotoSinCodigo(p);
+if(est) return e === est;
+return true;
+}).sort((a,b) => a.lab.localeCompare(b.lab) || a.desc.localeCompare(b.desc));
+}
+function setCardGeneral(v){ gFiltroCard = (gFiltroCard === v ? '' : v); document.getElementById('gEst').value = ''; renderGeneral(); }
+function renderGeneral(){
+if(!document.getElementById('mGeneral').classList.contains('on')) return;
+const act = document.activeElement;
+if(act && act.tagName === 'INPUT' && act.closest('#gBody')){ gPendiente = true; return; }   // no borrar lo que el admin está escribiendo
+gPendiente = false;
+if(!esAdmin(firebase.auth().currentUser)){ cerrar('mGeneral'); return; }
+const lab = document.getElementById('gLab').value;
+const base = lista().filter(p => !lab || p.lab === lab);
+const cnt = {tot:base.length, con:0, pen:0, falta:0, sobra:0, ok:0, foto:0};
+base.forEach(p => { const e = estadoDe(p); cnt[e]++; if(e !== 'pen') cnt.con++; if(fotoSinCodigo(p)) cnt.foto++; });
+const card = (k, t, n) => '<div class="'+(gFiltroCard===k?'on':'')+'" onclick="setCardGeneral(\''+k+'\')"><b>'+n+'</b><span>'+t+'</span></div>';
+document.getElementById('gCards').innerHTML =
+card('', 'Productos', cnt.tot) + card('con','Contados', cnt.con) + card('pen','Pendientes', cnt.pen) +
+card('falta','Con faltante', cnt.falta) + card('sobra','Con sobrante', cnt.sobra) + card('ok','Cuadra', cnt.ok) + card('foto','📷 Foto sin código', cnt.foto);
+const rows = filtrarGeneral(), MAX = 1500;
+document.getElementById('gBody').innerHTML = rows.slice(0, MAX).map(p => {
+const d = difDe(p), e = estadoDe(p);
+const stk = (+p.stkE||0) + ((+p.stkF||0) ? ' <span class="gL">+ '+(+p.stkF)+' fr.</span>' : '');
+const estTxt = {pen:'<span class="gP">Pendiente</span>', falta:'<span class="gF">Falta</span>', sobra:'<span class="gS">Sobra</span>', ok:'<span class="gOk">Cuadra</span>'}[e];
+const difTxt = d === null ? '<span class="gP">—</span>' : '<span class="'+(d<0?'gF':d>0?'gS':'gOk')+'">'+(d>0?'+':'')+fmtDif(p,d)+'</span>';
+const lotes = filasDe(p).map(f => esc(f.lote||'s/l')+' · '+esc(fmtVenc(f.venc))+' · <b>'+(FR ? txtEF(+f.cant||0, +f.fr||0) : (+f.cant||0))+'</b>').join('<br>');
+return '<tr><td>'+esc(p.lab)+'</td><td>'+esc(p.cod)+'</td><td>'+celdaBarra(p)+'</td><td>'+esc(p.desc)+(p.c&&p.c.coment?'<div class="gL">💬 '+esc(p.c.coment)+'</div>':'')+'</td>'+
+'<td class="n">'+stk+'</td><td class="n">'+(contado(p)?(FR ? txtEF(total(p), totalF(p)) : total(p)):'<span class="gP">—</span>')+'</td><td class="n">'+difTxt+'</td><td>'+estTxt+'</td>'+
+'<td class="gL">'+lotes+'</td><td class="gL">'+(p.c?esc(p.c.por||'')+'<br>'+esc(fmtFecha(p.c.fecha)):'')+'</td></tr>';
+}).join('') || '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--mut)">Sin resultados</td></tr>';
+document.getElementById('gPie').textContent = 'Mostrando ' + Math.min(rows.length, MAX) + ' de ' + rows.length + ' productos' +
+(rows.length > MAX ? ' (usa los filtros para ver el resto)' : '') + (FR ? '. Diferencia = (enteros × Frac + fracciones) contados − stock del sistema (Stk_E × Frac + Stk_F). Se actualiza en vivo.' : '. Diferencia = contado − stock entero (Stk_E) del sistema. Se actualiza en vivo.');
+}
+function exportarGeneral(){
+const data = filtrarGeneral().map(p => { const d = difDe(p), e = estadoDe(p);
+return {Laboratorio:p.lab, Codigo:p.cod, Descripcion:p.desc, Tipo:p.tipo, Frac:p.frac||1, Stk_E_Sistema:+p.stkE||0, Stk_F_Sistema:+p.stkF||0,
+Contado: contado(p) ? total(p) : '', Contado_F: contado(p) ? totalF(p) : '', Diferencia: d === null ? '' : (FR ? fmtDif(p,d) : d),
+Estado: {pen:'PENDIENTE', falta:'FALTA', sobra:'SOBRA', ok:'CUADRA'}[e],
+Lotes: filasDe(p).map(f => (f.lote||'s/l')+' '+fmtVenc(f.venc)+' ('+(+f.cant||0)+')').join(' | '),
+Responsable: p.c ? p.c.por||'' : '', Fecha: p.c ? fmtFecha(p.c.fecha) : '', Comentario: p.c ? p.c.coment||'' : '', Cod_Barras: p.c ? p.c.barra||'' : '', Foto_Codigo: p.c && p.c.foto ? 'SI' : ''}; });
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.length ? data : [{Laboratorio:'(sin datos)'}]), 'Vista general');
+XLSX.writeFile(wb, 'Vista_general_conteo_vs_stock.xlsx');
+}
+function verFoto(k){
+const p = PRODS[k] || {};
+document.getElementById('fvTitulo').textContent = 'Foto del código — ' + (p.cod || '') + ' ' + (p.desc || '');
+document.getElementById('fvImg').innerHTML = 'Cargando foto...';
+document.getElementById('fvInfo').textContent = '';
+document.getElementById('mFotoVer').classList.add('on');
+ref.child('fotos/' + k).once('value').then(s => {
+const d = s.val();
+if(!d || !d.img){ document.getElementById('fvImg').textContent = 'No se encontró la foto.'; return; }
+document.getElementById('fvImg').innerHTML = '<img src="' + d.img + '" style="max-width:100%;max-height:70vh;border-radius:8px">';
+document.getElementById('fvInfo').textContent = 'Tomada por ' + (d.por || '') + ' · ' + fmtFecha(d.fecha);
+}).catch(e => { document.getElementById('fvImg').textContent = 'No se pudo cargar: ' + e.message; });
+}
+function openAdminPanel(){
+if(!ref){ alert('Primero configura Firebase.'); return; }
+document.getElementById('aNombre').value = META.nombre;
+document.getElementById('aMeses').value = META.meses || 6;
+renderCierres();
+document.getElementById('mAdmin').classList.add('on');
+}
+function guardarAdmin(){
+ref.child('meta').set({ nombre: document.getElementById('aNombre').value.trim() || 'Inventario',
+meses: +document.getElementById('aMeses').value || 6 })
+.then(()=>cerrar('mAdmin')).catch(e => alert('Error: ' + e.message));
+}
+function normaliza(o){
+const m = {}; Object.keys(o).forEach(k => m[k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()] = o[k]);
+return m;
+}
+function importar(){
+const f = document.getElementById('aFile').files[0];
+if(!f){ alert('Elige un archivo primero.'); return; }
+const rd = new FileReader();
+rd.onload = e => {
+let filas;
+try{ const wb = XLSX.read(e.target.result, {type:'array'});
+filas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:false}); }
+catch(err){ alert('No se pudo leer el archivo.'); return; }
+// Agrupa por código: el Excel del sistema repite el producto una vez por lote
+const map = new Map();
+filas.map(normaliza).forEach(r => {
+const lab = String(r.laboratorio||r.lab||'').trim().toUpperCase();
+const cod = String(r.codpro||r.codigo||r.cod||'').trim();
+const desc = String(r['descripcion producto']||r.descripcion||r.producto||r.desc||'').trim().toUpperCase();
+if(!lab || !(cod || desc)) return;
+const key = lab + '|' + (cod || desc);
+if(!map.has(key)) map.set(key, { lab, cod, desc,
+tipo: String(r.tipo||r.categoria||'').trim().toUpperCase(),
+frac: +r.frac || 1, stkE: 0, stkF: 0,
+estado: String(r.estado||'S').trim(), almacen: String(r.almacen||'DROGUERIA FS').trim() });
+const p = map.get(key);
+p.stkE += +r.stk_e || 0; p.stkF += +r.stk_f || 0;
+});
+const obj = {}; let n = 0;
+[...map.values()].forEach(p => { n++; obj['p' + String(n).padStart(5,'0')] = p; });
+if(!n){ alert('No encontré filas válidas. Las columnas deben llamarse Laboratorio, Tipo, CodPro, Descripción Producto.'); return; }
+if(!confirm(`Se leyeron ${filas.length} filas = ${n} productos únicos de ${new Set([...map.values()].map(p=>p.lab)).size} laboratorios.\nSe BORRARÁN todos los conteos y reconteos actuales, para todos los usuarios. ¿Continuar?`)) return;
+document.getElementById('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Subiendo productos...</div>'; cerrar('mAdmin');
+ref.update({productos: obj, conteos: null, cierres: null, fotos: null, reconteos: null})
+.then(()=>{ alert(n + ' productos cargados.'); cerrar('mAdmin'); goHome(); })
+.catch(e => alert('Error al cargar: ' + e.message));
+};
+rd.readAsArrayBuffer(f);
+}
+function plantilla(){
+const ws = XLSX.utils.aoa_to_sheet([['Laboratorio','Tipo','CodPro','Descripción Producto','Frac','Stk_E','Stk_F'],['ALCON PHARMACEUTICAL DEL PERU','FARMACOS','19800','NEVANAC 0.1% X5ML OFT',1,0,0]]);
+const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+XLSX.writeFile(wb, 'plantilla_productos.xlsx');
+}
+// Exporta lo contado con el mismo formato del Excel que se cargó
+function exportarFormato(){
+if(typeof XLSX === 'undefined'){ alert('No cargó el generador de Excel. Revisa tu internet.'); return; }
+const cont = lista().filter(contado).sort((a,b)=>a.lab.localeCompare(b.lab)||a.desc.localeCompare(b.desc));
+if(!cont.length){ alert('Todavía no hay productos contados.'); return; }
+const fecha = v => { if(!v) return '';            // AAAA-MM -> fecha real: último día del mes
+const [y,m] = v.split('-').map(Number);
+return {t:'n', v:(Date.UTC(y,m,0) - Date.UTC(1899,11,30))/86400000, z:'dd/mm/yyyy'}; };
+const cab = ['Laboratorio','Tipo','CodPro','Descripción Producto','Frac','Estado','Almacen','Stk_E','Stk_F',
+'Lote_01','Fec_Vencimiento','Lote_02','Fec_Vencimiento2','Lote_03','Fec_Vencimiento3','Lote_04','Fec_Vencimiento4','Lote_05','Fec_Vencimiento5','Comentario','Cod_Barras'];
+// Una fila por cada lote contado, con su propio stock (igual que el Excel del sistema)
+const filas = [cab];
+cont.forEach(p => {
+filasDe(p).forEach(l => {
+filas.push([p.lab, p.tipo, String(p.cod), p.desc, p.frac||1, p.estado||'S', p.almacen||'DROGUERIA FS',
++l.cant||0, +l.fr||0, l.lote, fecha(l.venc), '', '', '', '', '', '', '', '', p.c.coment||'', p.c.barra||'']);
+});
+});
+const pen = [['Laboratorio','Tipo','CodPro','Descripción Producto']].concat(
+lista().filter(p=>!contado(p)).sort((a,b)=>a.lab.localeCompare(b.lab)||a.desc.localeCompare(b.desc)).map(p=>[p.lab,p.tipo,String(p.cod),p.desc]));
+const wb = XLSX.utils.book_new();
+const ws = XLSX.utils.aoa_to_sheet(filas);
+ws['!cols'] = [30,12,8,40,5,6,14,7,7,12,13,12,13,12,13,12,13,12,13,40,16].map(w=>({wch:w}));
+XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
+XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pen), 'Pendientes');
+const hoy = new Date().toISOString().slice(0,10);
+XLSX.writeFile(wb, 'Productos_Lotes_Contados_' + hoy + '.xlsx');
+}
+function exportar(){
+const det = [], res = [];
+lista().sort((a,b)=>a.lab.localeCompare(b.lab)||a.desc.localeCompare(b.desc)).forEach(p => {
+res.push({Laboratorio:p.lab, Codigo:p.cod, Descripcion:p.desc, Tipo:p.tipo, Frac:p.frac||1, Stk_E_Sistema:p.stkE||0, Stk_F_Sistema:p.stkF||0, Conteo:total(p), Diferencia_vs_Stk_E: contado(p) ? total(p)-(p.stkE||0) : '',
+Estado:contado(p)?'CONTADO':'PENDIENTE', Responsable:p.c?p.c.por:'', Fecha:p.c?fmtFecha(p.c.fecha):'', VctoCorto:vctoCorto(p)?'SI':'', Comentario:p.c&&p.c.coment||'', Cod_Barras:p.c&&p.c.barra||''});
+filasDe(p).forEach(f => det.push({Laboratorio:p.lab, Codigo:p.cod, Descripcion:p.desc, Cantidad:+f.cant||0, Lote:f.lote, Vencimiento:fmtVenc(f.venc), Responsable:p.c.por}));
+});
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res), 'Resumen');
+XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(det.length?det:[{Laboratorio:'(sin conteos)'}]), 'Detalle por lote');
+XLSX.writeFile(wb, 'Conteo_' + META.nombre.replace(/\s+/g,'_') + '.xlsx');
+}
+function respaldo(){
+const a = document.createElement('a');
+ref.child('reconteos').once('value').then(s => s.val(), () => (recoOn ? RECO : null)).then(rc => {
+a.href = URL.createObjectURL(new Blob([JSON.stringify({meta:META, productos:PRODS, conteos:CONT, reconteos:rc||null})], {type:'application/json'}));
+a.download = 'respaldo_' + ALM.key + '.json'; a.click(); });
+}
+function restaurar(inp){
+const f = inp.files[0]; if(!f) return;
+f.text().then(t => {
+let d; try{ d = JSON.parse(t); if(!d.productos) throw 0; }catch(e){ alert('Archivo de respaldo no válido.'); return; }
+if(confirm('¿Reemplazar el inventario de TODOS con este respaldo?'))
+ref.set({meta:d.meta||META, productos:d.productos, conteos:d.conteos||null, reconteos:d.reconteos||null})
+.then(()=>{ cerrar('mAdmin'); goHome(); }).catch(e => alert('Error: ' + e.message));
+});
+}
+function borrarTodo(){
+if(confirm('¿Borrar TODO el inventario y los conteos para todos los usuarios? Te recomiendo guardar un respaldo antes.'))
+ref.update({productos:null, conteos:null, cierres:null, fotos:null, reconteos:null}).then(()=>{ cerrar('mAdmin'); goHome(); });
+}
+
+// ===== RECONTEO (solo admin) =====
+// Se guarda en <almacén>/reconteos/<producto>. NO toca "conteos": el conteo original queda igual.
+let RECO = {}, recoOn = false, rFiltroCard = '', recoActual = null;
+const recoDe = k => RECO[k] || null;
+const arr = x => x ? Object.values(x) : [];
+const lkey = (lote, venc) => String(lote||'').trim().toUpperCase() + '|' + (venc||'');
+const unid = (p, e, f) => FR ? (+e||0) * (+p.frac||1) + (+f||0) : (+e||0);
+const txtCant = (e, f) => FR ? txtEF(+e||0, +f||0) : String(+e||0);
+// Une los lotes del conteo con los del reconteo (por lote + vencimiento)
+function lotesReco(p){
+const m = new Map();
+filasDe(p).forEach(f => { const k = lkey(f.lote, f.venc);
+const o = m.get(k) || {lote:f.lote||'', venc:f.venc||'', c:0, cf:0, r:null, rf:null, obs:'', orig:true};
+o.c += +f.cant||0; o.cf += +f.fr||0; m.set(k, o); });
+const r = recoDe(p.k);
+arr(r && r.filas).forEach(f => { const k = lkey(f.lote, f.venc);
+const o = m.get(k) || {lote:f.lote||'', venc:f.venc||'', c:null, cf:null, r:null, rf:null, obs:'', orig:false};
+o.r = (o.r||0) + (+f.cant||0); o.rf = (o.rf||0) + (+f.fr||0); if(f.obs) o.obs = f.obs; m.set(k, o); });
+return [...m.values()];
+}
+const tieneReco = p => !!recoDe(p.k);
+function totReco(p){ const r = recoDe(p.k); if(!r) return null; let e = 0, f = 0; arr(r.filas).forEach(x => { e += +x.cant||0; f += +x.fr||0; }); return {e, f}; }
+// Diferencia reconteo − conteo: solo de los lotes que sí se recontaron
+function difReco(p){
+if(!tieneReco(p)) return null; let d = 0;
+lotesReco(p).forEach(l => { if(l.r !== null) d += unid(p, l.r, l.rf) - unid(p, l.c, l.cf); });
+return d;
+}
+function abrirReconteo(){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+if(!recoOn){
+recoOn = true;
+ref.child('reconteos').on('value', s => { RECO = s.val() || {}; renderReconteo(); },
+e => { recoOn = false; alert('No se pudo leer los reconteos: ' + e.message + '\nRevisa que las reglas de Firebase permitan "reconteos".'); });
+}
+const labs = [...new Set(lista().map(p => p.lab))].sort();
+const sel = document.getElementById('rLab'), prev = sel.value;
+sel.innerHTML = '<option value="">Todos los laboratorios</option>' + labs.map(l => '<option>'+esc(l)+'</option>').join('');
+sel.value = prev;
+cerrar('mAdmin');
+document.getElementById('mReconteo').classList.add('on');
+renderReconteo();
+}
+function estReco(p){
+const d = difReco(p);
+return {con: contado(p), reco: tieneReco(p), dist: d !== null && d !== 0, igual: d === 0, difsis: contado(p) && difDe(p) !== 0};
+}
+function filtrarReconteo(){
+const q = (document.getElementById('rQ').value||'').trim().toUpperCase();
+const lab = document.getElementById('rLab').value;
+const est = rFiltroCard || document.getElementById('rEst').value;
+return lista().filter(p => {
+if(lab && p.lab !== lab) return false;
+if(q && !(String(p.cod||'').toUpperCase().includes(q) || String(p.desc||'').toUpperCase().includes(q))) return false;
+const s = estReco(p);
+if(est === 'con') return s.con;
+if(est === 'reco') return s.reco;
+if(est === 'sinreco') return s.con && !s.reco;
+if(est === 'dist') return s.dist;
+if(est === 'igual') return s.igual;
+if(est === 'difsis') return s.difsis;
+return true;
+}).sort((a,b) => a.lab.localeCompare(b.lab) || a.desc.localeCompare(b.desc));
+}
+function setCardReco(v){ rFiltroCard = (rFiltroCard === v ? '' : v); renderReconteo(); }
+function renderReconteo(){
+if(!document.getElementById('mReconteo').classList.contains('on')) return;
+if(!esAdmin(firebase.auth().currentUser)){ cerrar('mReconteo'); return; }
+const lab = document.getElementById('rLab').value;
+const base = lista().filter(p => !lab || p.lab === lab);
+const n = {con:0, reco:0, sinreco:0, dist:0, igual:0, difsis:0};
+base.forEach(p => { const s = estReco(p); if(s.con) n.con++; if(s.reco) n.reco++; if(s.con && !s.reco) n.sinreco++; if(s.dist) n.dist++; if(s.igual) n.igual++; if(s.difsis) n.difsis++; });
+const card = (k, t, v) => '<div class="'+(rFiltroCard===k?'on':'')+'" onclick="setCardReco(\''+k+'\')"><b>'+v+'</b><span>'+t+'</span></div>';
+document.getElementById('rCards').innerHTML = card('con','Contados', n.con) + card('difsis','Con diferencia vs sistema', n.difsis) +
+card('reco','Reconteados', n.reco) + card('sinreco','Sin reconteo', n.sinreco) + card('dist','Reconteo ≠ conteo', n.dist) + card('igual','Reconteo = conteo', n.igual);
+const rows = filtrarReconteo(), MAX = 1500;
+document.getElementById('rBody').innerHTML = rows.slice(0, MAX).map(p => {
+const tr = totReco(p), d = difReco(p), r = recoDe(p.k);
+const stk = (+p.stkE||0) + ((+p.stkF||0) ? ' <span class="gL">+ '+(+p.stkF)+' fr.</span>' : '');
+const lot = lotesReco(p).map(l => esc(l.lote||'s/l')+' · '+esc(fmtVenc(l.venc))+' · '+(l.c===null?'—':txtCant(l.c,l.cf))+
+(l.r!==null?' → <b style="color:#6a1b9a">'+txtCant(l.r,l.rf)+'</b>':'')+(l.orig?'':' <span class="rPill">nuevo</span>')+(l.obs?'<div class="gL">💬 '+esc(l.obs)+'</div>':'')).join('<br>');
+const difTxt = d === null ? '<span class="gP">—</span>' : '<span class="'+(d<0?'gF':d>0?'gS':'gOk')+'">'+(d>0?'+':'')+fmtDif(p,d)+'</span>';
+return '<tr><td>'+esc(p.lab)+'</td><td>'+esc(p.cod)+'</td><td>'+esc(p.desc)+(r&&r.obs?'<div class="gL">🔁 '+esc(r.obs)+'</div>':'')+'</td>'+
+'<td class="n">'+stk+'</td><td class="n">'+(contado(p)?txtCant(total(p),totalF(p)):'<span class="gP">—</span>')+'</td>'+
+'<td class="n">'+(tr?'<span class="rPill">'+txtCant(tr.e,tr.f)+'</span>':'<span class="gP">—</span>')+'</td><td class="n">'+difTxt+'</td>'+
+'<td class="gL">'+lot+(r?'<div class="gL">Recontó: '+esc(r.por||'')+' · '+esc(fmtFecha(r.fecha))+'</div>':'')+'</td>'+
+'<td><button class="btn '+(r?'btn-g':'btn-p')+'" style="white-space:nowrap;padding:5px 10px" onclick="abrirRecontar(\''+p.k+'\')">'+(r?'✎ Editar':'🔁 Recontar')+'</button></td></tr>';
+}).join('') || '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--mut)">Sin resultados</td></tr>';
+document.getElementById('rPie').textContent = 'Mostrando ' + Math.min(rows.length, MAX) + ' de ' + rows.length + ' productos' +
+(rows.length > MAX ? ' (usa los filtros para ver el resto)' : '') + '. La diferencia compara solo los lotes recontados.';
+}
+function filaReco(l, fx){
+const ro = l.orig ? 'readonly' : '';
+return '<tr class="rr" data-orig="'+(l.orig?1:0)+'" data-venc="'+esc(l.venc||'')+'">'+
+'<td><input class="rl" '+ro+' value="'+esc(l.lote||'')+'" placeholder="Lote" style="min-width:90px"></td>'+
+'<td><input class="rv" '+ro+' value="'+esc(vencTxt(l.venc))+'" placeholder="MM/AA" maxlength="5" inputmode="numeric" style="width:80px" oninput="mascara(this)"></td>'+
+'<td style="text-align:right;white-space:nowrap">'+(l.c===null?'—':txtCant(l.c,l.cf))+'</td>'+
+'<td style="white-space:nowrap"><input class="rc" inputmode="numeric" value="'+(l.r===null?'':l.r)+'" placeholder="'+(FR?'Enteros':'Cant.')+'" style="width:80px" oninput="soloNum(this)">'+
+(FR?' <input class="rf" inputmode="numeric" value="'+(l.r===null?'':(l.rf||0))+'" placeholder="Fracc." style="width:70px" oninput="soloNum(this)">':'')+'</td>'+
+'<td><input class="ro" maxlength="200" value="'+esc(l.obs||'')+'" placeholder="Opcional" style="min-width:150px"></td>'+
+'<td>'+(l.orig?'':'<button class="btn btn-r" style="padding:5px 9px" onclick="this.closest(\'tr\').remove()">✕</button>')+'</td></tr>';
+}
+function abrirRecontar(k){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+recoActual = k;
+const p = {k, ...PRODS[k], c: CONT[k]||null}, r = recoDe(k);
+document.getElementById('rcTitulo').textContent = '🔁 ' + p.cod + ' – ' + p.desc;
+document.getElementById('rcSub').textContent = p.lab + ' · Stock sistema: ' + txtCant(p.stkE, p.stkF) + (FR ? ' · Frac: ' + (p.frac||1) : '') +
+(p.c ? ' · Contó: ' + (p.c.por||'') + ' (' + fmtFecha(p.c.fecha) + ')' : ' · Sin conteo del personal');
+document.getElementById('rcThR').textContent = FR ? 'Reconteo (enteros + fracc.)' : 'Reconteo';
+const ls = lotesReco(p);
+document.getElementById('rcBody').innerHTML = ls.map(l => filaReco(l)).join('') + (ls.length ? '' : filaReco({lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:false}));
+document.getElementById('rcObs').value = (r && r.obs) || '';
+document.getElementById('rcQuitar').style.visibility = r ? 'visible' : 'hidden';
+document.getElementById('mRecontar').classList.add('on');
+setTimeout(() => { const i = document.querySelector('#rcBody .rc'); if(i) i.focus(); }, 50);
+}
+function agregarLoteReco(){
+document.getElementById('rcBody').insertAdjacentHTML('beforeend', filaReco({lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:false}));
+document.querySelector('#rcBody tr:last-child .rl').focus();
+}
+function guardarReconteo(){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+const k = recoActual, fx = +PRODS[k].frac || 1, filas = []; let n = 0;
+for(const tr of document.querySelectorAll('#rcBody .rr')){
+n++;
+const orig = tr.dataset.orig === '1';
+const lote = tr.querySelector('.rl').value.trim().toUpperCase(), vt = tr.querySelector('.rv').value.trim();
+const c = tr.querySelector('.rc').value, f = tr.querySelector('.rf') ? tr.querySelector('.rf').value : '';
+const obs = tr.querySelector('.ro').value.trim();
+const vacio = c === '' && f === '';
+if(orig && vacio){ if(obs){ alert('Fila ' + n + ' (' + lote + '): pon la cantidad del reconteo o borra la observación.'); return; } continue; }
+if(!orig && vacio && !lote && !vt && !obs) continue;
+const venc = orig ? tr.dataset.venc : leerVenc(vt);
+const falta = [vacio ? 'cantidad' : '', !lote ? 'lote' : '', (!orig && !vt) ? 'vencimiento' : ''].filter(Boolean);
+if(falta.length){ alert('Fila ' + n + ': falta ' + falta.join(', ') + '.'); return; }
+if(venc === null){ alert('Fila ' + n + ': la fecha "' + vt + '" no es válida. Usa MM/AA (ej. 05/27).'); return; }
+if(FR && fx > 1 && (+f||0) >= fx){ alert('Fila ' + n + ': las fracciones (' + f + ') deben ser menores que el Frac (' + fx + ').'); return; }
+const o = {lote, venc, cant: +c||0, obs, nuevo: !orig}; if(FR) o.fr = +f||0;
+filas.push(o);
+}
+const obs = document.getElementById('rcObs').value.trim();
+if(!filas.length){ alert('Escribe la cantidad del reconteo en al menos un lote.'); return; }
+const u = firebase.auth().currentUser;
+ref.child('reconteos/' + k).set({filas, obs, por: resp || (u && u.email) || 'ADMIN', fecha: firebase.database.ServerValue.TIMESTAMP})
+.then(() => cerrar('mRecontar'))
+.catch(e => alert('No se pudo guardar el reconteo: ' + e.message + '\nSi dice "permission denied", agrega el permiso de "reconteos" en las reglas de Firebase.'));
+}
+function quitarReconteo(){
+if(!recoActual || !recoDe(recoActual)) return;
+if(!confirm('¿Quitar el reconteo de este producto? El conteo original no se toca.')) return;
+ref.child('reconteos/' + recoActual).remove().then(() => cerrar('mRecontar')).catch(e => alert('Error: ' + e.message));
+}
+// Excel: una fila por lote con Contado y Reconteo, lote y vencimiento
+function exportarReconteo(){
+if(typeof XLSX === 'undefined'){ alert('No cargó el generador de Excel. Revisa tu internet.'); return; }
+const fecha = v => { if(!v) return ''; const [y,m] = v.split('-').map(Number);
+return {t:'n', v:(Date.UTC(y,m,0) - Date.UTC(1899,11,30))/86400000, z:'dd/mm/yyyy'}; };
+const cab = ['Laboratorio','Tipo','CodPro','Descripción Producto','Frac','Stk_E_Sistema'].concat(FR?['Stk_F_Sistema']:[])
+.concat(['Lote','Fec_Vencimiento','Contado'], FR?['Contado_F']:[], ['Reconteo'], FR?['Reconteo_F']:[],
+['Diferencia (reconteo − contado)','Obs_Lote','Lote_nuevo','Obs_Reconteo','Contó','Recontó','Fecha_Reconteo']);
+const filas = [cab];
+filtrarReconteo().forEach(p => {
+const r = recoDe(p.k), ls = lotesReco(p);
+(ls.length ? ls : [{lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:true}]).forEach(l => {
+const d = l.r === null ? '' : unid(p, l.r, l.rf) - unid(p, l.c, l.cf);
+filas.push([p.lab, p.tipo, String(p.cod), p.desc, p.frac||1, +p.stkE||0].concat(FR?[+p.stkF||0]:[])
+.concat([l.lote, fecha(l.venc), l.c===null?'':l.c], FR?[l.c===null?'':l.cf]:[], [l.r===null?'':l.r], FR?[l.r===null?'':l.rf]:[],
+[d === '' ? '' : (FR ? fmtDif(p, d) : d), l.obs||'', l.orig?'':'SI', r ? r.obs||'' : '', p.c ? p.c.por||'' : '', r ? r.por||'' : '', r ? fmtFecha(r.fecha) : '']));
+});
+});
+if(filas.length === 1){ alert('No hay productos en esta vista.'); return; }
+const ws = XLSX.utils.aoa_to_sheet(filas);
+ws['!cols'] = cab.map(h => ({wch: /Descrip/.test(h) ? 40 : /Laboratorio|Obs/.test(h) ? 28 : 13}));
+const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Conteo vs reconteo');
+XLSX.writeFile(wb, 'Reconteo_' + ALM.key + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+resp = ''; iniciar(); setResp();
+// Oculta el encabezado al bajar y lo muestra al subir
+{ let ultY = 0; const hd = document.querySelector('header');
+window.addEventListener('scroll', () => { const y = window.scrollY;
+if(y > ultY && y > 80) hd.classList.add('oculto'); else if(y < ultY - 5 || y < 80) hd.classList.remove('oculto');
+ultY = y; }, {passive:true}); }
+
+// ----- Avance por almacén (solo admin) -----
+function abrirAvance(){
+  if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+  cerrar('mAdmin');
+  document.getElementById('mAvance').classList.add('on');
+  const body = document.getElementById('avBody');
+  body.innerHTML = '<p class="sub" style="color:var(--mut)">Cargando avance de cada almacén…</p>';
+  const db = firebase.database();
+  Promise.all(Object.keys(ALMACENES).map(k => {
+    const p = ALMACENES[k].path;
+    return Promise.all(['productos','conteos','cierres','meta'].map(c => db.ref(p + '/' + c).once('value').then(x => x.val() || {})))
+      .then(([prods, cont, cier, meta]) => ({k, prods, cont, cier, meta}))
+      .catch(e => ({k, error: e.message}));
+  })).then(res => { body.innerHTML = res.map(tarjetaAvance).join(''); });
+}
+function tarjetaAvance(r){
+  const A = ALMACENES[r.k];
+  const url = location.origin + location.pathname + '?alm=' + r.k;
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=' + encodeURIComponent(url);
+  let stats;
+  if(r.error){ stats = '<p style="color:var(--red)">No se pudo leer este almacén: ' + esc(r.error) + '</p>'; }
+  else {
+    let tot = 0, hech = 0, falta = 0, sobra = 0, ok = 0; const labs = new Set();
+    Object.entries(r.prods).forEach(([k, p]) => {
+      tot++; labs.add(p.lab);
+      const c = r.cont[k];
+      if(c){
+        hech++;
+        const t = Object.values(c.filas || {}).reduce((a, f) => a + (+f.cant || 0), 0);
+        const fx = +p.frac || 1, tf = Object.values(c.filas || {}).reduce((a, f) => a + (+f.fr || 0), 0);
+        const d = A.fracciones ? (t * fx + tf) - ((+p.stkE || 0) * fx + (+p.stkF || 0)) : t - (+p.stkE || 0);
+        if(d < 0) falta++; else if(d > 0) sobra++; else ok++;
+      }
+    });
+    const pct = tot ? hech / tot * 100 : 0;
+    const cerr = Object.keys(r.cier).length;
+    stats = '<div class="sub" style="color:var(--mut)">' + esc(r.meta.nombre || 'Inventario') + '</div>'
+      + '<div style="height:10px;background:#e3e9ec;border-radius:6px;overflow:hidden;margin:8px 0 6px"><div style="height:100%;width:' + pct + '%;background:' + A.color + '"></div></div>'
+      + '<div style="font-size:24px;font-weight:800;color:' + A.color + '">' + pct.toFixed(pct > 0 && pct < 1 ? 2 : 0) + '% contado</div>'
+      + '<div class="sub">' + hech + ' de ' + tot + ' productos · <b>' + (tot - hech) + '</b> pendientes</div>'
+      + '<div class="sub">Laboratorios cerrados: <b>' + cerr + '</b> de ' + labs.size + '</div>'
+      + '<div class="sub">Faltante: <b style="color:var(--red)">' + falta + '</b> · Sobrante: <b style="color:var(--warn)">' + sobra + '</b> · Cuadra: <b style="color:var(--ok)">' + ok + '</b></div>';
+  }
+  const aqui = ALM && r.k === ALM.key;
+  return '<div style="border:2px solid ' + A.color + ';border-radius:14px;padding:14px;margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">'
+    + '<div style="flex:1;min-width:220px">'
+    + '<div style="background:' + A.color + ';color:#fff;font-weight:800;padding:6px 12px;border-radius:8px;display:inline-block;margin-bottom:8px">' + esc(A.nombre) + (aqui ? ' · estás aquí' : '') + '</div>'
+    + stats
+    + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+    + (aqui ? '' : '<button class="btn btn-p" onclick="irAlmacen(\'' + r.k + '\')">Ir a este almacén</button>')
+    + '<button class="btn" onclick="copiarEnlace(\'' + url + '\')">📋 Copiar enlace</button>'
+    + '<a class="btn" href="' + qr + '" target="_blank" rel="noopener" style="text-decoration:none">🖨 Abrir QR</a>'
+    + '</div>'
+    + '<div class="sub" style="margin-top:6px;word-break:break-all;color:var(--mut)">' + esc(url) + '</div>'
+    + '</div>'
+    + '<div style="text-align:center"><img src="' + qr + '" width="150" height="150" alt="QR ' + esc(A.nombre) + '" style="border-radius:8px;background:#fff;border:1px solid #e3e9ec"><div class="sub" style="color:var(--mut)">QR para el personal</div></div>'
+    + '</div>';
+}
+function irAlmacen(k){ try{ localStorage.setItem('alm', k); }catch(e){} location.href = location.pathname + '?alm=' + k; }
+function copiarEnlace(u){
+  (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject())
+    .then(() => alert('Enlace copiado:\n' + u))
+    .catch(() => prompt('Copia este enlace:', u));
+}
+</script>
+<style>
+#almBanda{background:var(--alm);color:#fff;text-align:center;font-size:15px;letter-spacing:.5px;padding:7px 10px;margin:-12px -18px 10px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+#almFijo{position:fixed;left:10px;bottom:10px;z-index:40;background:var(--alm);color:#fff;font-weight:700;font-size:13px;padding:7px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+#almSel{position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#fff7ef,#ffe3c7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+#almSel .box{background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:28px 22px;width:100%;max-width:420px;text-align:center}
+#almSel h2{margin:0 0 4px;color:#e65100;font-size:22px}
+#almSel p{margin:0 0 20px;color:#666;font-size:14px}
+#almSel button{display:block;width:100%;margin:10px 0;padding:18px;border:0;border-radius:12px;background:#f57c00;color:#fff;font-size:18px;font-weight:700;cursor:pointer}
+#almSel button:active{transform:scale(.98)}
+#almSel button.alt{background:#0288d1}
+#btnAlm{margin-left:8px;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#e65100;font-size:12px;font-weight:600;cursor:pointer;vertical-align:middle}
+</style>
+<script>
+// ===== Selector de almacén =====
+// Para agregar otro almacén: añade una línea aquí y su permiso en las reglas de Firebase.
+const ALMACENES = {
+  drogueria: { nombre: 'Droguería FS', path: 'inventario',        color: '#f57c00' },
+  canjes:    { nombre: 'Canjes',       path: 'inventario_canjes', color: '#0288d1', fracciones: true }  // cuenta enteros + fracciones
+};
+let ALM = null;
+function cambiarAlmacen(){ try{ localStorage.removeItem('alm'); sessionStorage.removeItem('alm'); }catch(e){} location.href = location.pathname; }
+// Título con el nombre del almacén + botón "Cambiar almacén"
+function tituloAlm(){
+  const h = document.getElementById('title'); if(!h || !ALM) return;
+  h.textContent = 'Control de Existencias | ' + ALM.nombre;
+  const b = document.createElement('button'); b.id = 'btnAlm'; b.textContent = 'Cambiar almacén'; b.onclick = cambiarAlmacen; h.appendChild(b);
+}
+// Franja de color arriba + etiqueta fija abajo, para que el usuario siempre sepa en qué almacén está
+function pintarAlmacen(){
+  document.documentElement.style.setProperty('--alm', ALM.color);
+  const hd = document.querySelector('header');
+  if(hd && !document.getElementById('almBanda')){
+    const d = document.createElement('div'); d.id = 'almBanda';
+    d.innerHTML = '📍 ESTÁS EN EL ALMACÉN: <b>' + ALM.nombre.toUpperCase() + '</b>';
+    hd.insertBefore(d, hd.firstChild);
+  }
+  if(!document.getElementById('almFijo')){
+    const f = document.createElement('div'); f.id = 'almFijo'; f.textContent = '📍 ' + ALM.nombre;
+    document.body.appendChild(f);
+  }
+}
+function iniciarAlmacen(key){
+  ALM = Object.assign({ key: key }, ALMACENES[key]);
+  try{ localStorage.setItem('alm', key); }catch(e){}
+  const ov = document.getElementById('almSel'); if(ov) ov.remove();
+  document.title = 'Control de Existencias | ' + ALM.nombre;
+  tituloAlm(); pintarAlmacen();
+  const s = document.createElement('script'); s.textContent = document.getElementById('appMain').textContent; document.body.appendChild(s);
+}
+(function(){
+  let key = new URLSearchParams(location.search).get('alm');
+  if(!key){ try{ key = localStorage.getItem('alm'); }catch(e){} }
+  if(key && ALMACENES[key]) return iniciarAlmacen(key);
+  const ov = document.createElement('div'); ov.id = 'almSel';
+  let html = '<div class="box"><h2>Control de Existencias</h2><p>Selecciona el almacén</p>';
+  Object.keys(ALMACENES).forEach(function(k, i){ html += '<button class="' + (i % 2 ? 'alt' : '') + '" data-k="' + k + '">' + ALMACENES[k].nombre + '</button>'; });
+  ov.innerHTML = html + '</div>';
+  ov.addEventListener('click', function(e){ const k = e.target.getAttribute && e.target.getAttribute('data-k'); if(k) iniciarAlmacen(k); });
+  document.body.appendChild(ov);
+})();
+</script>
+</body>
+</html>
