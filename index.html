@@ -242,6 +242,70 @@ td{padding:8px 6px}
 </div>
 </div>
 
+<!-- MODAL RECONTEO: LISTA (solo admin) -->
+<style>
+#mReconteo .mbox{max-width:1300px;width:100%;height:94vh;max-height:94vh;display:flex;flex-direction:column;padding:16px}
+#rCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+#rCards div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}
+#rCards div.on{outline:2px solid var(--pri)}
+#rCards b{display:block;font-size:20px}#rCards span{font-size:12px;color:var(--mut)}
+#rFil{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#rFil input,#rFil select{padding:8px;border:1px solid var(--line);border-radius:8px;width:auto}
+#rWrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px}
+#rTabla{width:100%;border-collapse:collapse;font-size:13px}
+#rTabla th{position:sticky;top:0;background:#6a1b9a;color:#fff;padding:7px 6px;text-align:left;white-space:nowrap;z-index:1}
+#rTabla td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+#rTabla td.n{text-align:right;white-space:nowrap}
+.rPill{background:#f3e5f5;color:#6a1b9a;border-radius:8px;padding:2px 8px;font-weight:700;white-space:nowrap}
+#mRecontar .mbox{max-width:860px}
+#rcTabla{width:100%;border-collapse:collapse;font-size:13px}
+#rcTabla th{font-size:11px;color:var(--mut);padding:6px;background:#f7f9fa;text-align:left;white-space:nowrap}
+#rcTabla td{padding:5px;border-bottom:1px solid var(--line);vertical-align:middle}
+#rcTabla input{padding:6px;font-size:13px}
+#rcTabla input[readonly]{background:#f2f5f6;border-color:transparent;font-weight:600}
+</style>
+<div class="modal" id="mReconteo">
+<div class="mbox">
+<div class="row" style="justify-content:space-between;margin-bottom:6px">
+<h3 style="margin:0">🔁 Reconteo — solo administrador</h3>
+<div class="row"><button class="btn btn-p" onclick="exportarReconteo()">⬇ Excel conteo vs reconteo</button><button class="btn" onclick="cerrar('mReconteo')">Cerrar</button></div>
+</div>
+<p class="sub" style="color:var(--mut);margin:0 0 8px">El reconteo se guarda aparte: <b>no cambia</b> el conteo original del personal. En el Excel salen las dos cantidades por lote y vencimiento.</p>
+<div id="rCards"></div>
+<div id="rFil">
+<input id="rQ" placeholder="Buscar código o descripción..." oninput="renderReconteo()" style="flex:1;min-width:200px">
+<select id="rLab" onchange="renderReconteo()"></select>
+<select id="rEst" onchange="rFiltroCard='';renderReconteo()">
+<option value="">Todos los productos</option><option value="con" selected>Contados</option><option value="difsis">Contados con diferencia vs sistema</option>
+<option value="reco">Reconteados</option><option value="sinreco">Contados sin reconteo</option><option value="dist">Reconteo distinto al conteo</option><option value="igual">Reconteo igual al conteo</option>
+</select>
+</div>
+<div id="rWrap"><table id="rTabla"><thead><tr>
+<th>Laboratorio</th><th>Código</th><th>Descripción</th><th>Stock sistema</th><th>Contado</th><th>Reconteo</th><th>Dif. (reconteo − conteo)</th><th>Lotes</th><th></th>
+</tr></thead><tbody id="rBody"></tbody></table></div>
+<div class="sub" id="rPie" style="color:var(--mut);margin-top:6px"></div>
+</div>
+</div>
+
+<!-- MODAL RECONTAR UN PRODUCTO (solo admin) -->
+<div class="modal" id="mRecontar" style="z-index:65">
+<div class="mbox">
+<div style="font-weight:700" id="rcTitulo"></div>
+<div class="sub" style="color:var(--mut);margin-bottom:10px" id="rcSub"></div>
+<div style="overflow-x:auto"><table id="rcTabla"><thead><tr>
+<th>Lote</th><th>Vence (MM/AA)</th><th style="text-align:right">Contado</th><th id="rcThR">Reconteo</th><th>Observación del lote</th><th></th>
+</tr></thead><tbody id="rcBody"></tbody></table></div>
+<button class="btn btn-g" style="margin-top:8px" onclick="agregarLoteReco()">+ Agregar lote encontrado en el reconteo</button>
+<label class="sub" style="color:var(--mut);display:block;margin-top:10px">Observación general del reconteo</label>
+<textarea id="rcObs" rows="2" maxlength="400" placeholder="Ej. se encontró mercadería en otra ubicación..." style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+<p class="sub" style="color:var(--mut);margin:6px 0 0">Deja vacío el reconteo de un lote si no lo volviste a contar. Escribe 0 si no encontraste nada.</p>
+<div class="row" style="justify-content:space-between;margin-top:10px">
+<button class="btn btn-r" id="rcQuitar" onclick="quitarReconteo()">Quitar reconteo</button>
+<div class="row"><button class="btn btn-g" onclick="cerrar('mRecontar')">Cancelar</button><button class="btn btn-p" onclick="guardarReconteo()">Guardar reconteo</button></div>
+</div>
+</div>
+</div>
+
 <!-- MODAL VER FOTO DEL CÓDIGO (admin) -->
 <div class="modal" id="mFotoVer" style="z-index:70">
 <div class="mbox" style="max-width:560px;text-align:center">
@@ -283,6 +347,7 @@ td{padding:8px 6px}
 <h3 style="margin-top:0">Administración</h3>
 <div class="sub" style="color:var(--mut);margin:-6px 0 12px;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Sesión: <b id="aUser"></b></span><button class="btn" onclick="salirAdmin()">Cerrar sesión</button></div>
 <button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirGeneral()">📊 Vista general: conteo vs stock (todos los laboratorios)</button>
+<button class="btn" style="width:100%;margin-bottom:14px;background:#6a1b9a;color:#fff" onclick="abrirReconteo()">🔁 Reconteo (no modifica el conteo original)</button>
 <button class="btn btn-p" style="width:100%;margin-bottom:14px" onclick="abrirAvance()">🏬 Avance por almacén y enlaces/QR para el personal</button>
 <div style="margin-bottom:10px"><label class="sub" style="color:var(--mut)">Nombre del inventario</label>
 <input id="aNombre" placeholder="Inventario Noviembre 2026"></div>
@@ -372,7 +437,7 @@ el.innerHTML = ks.length ? ks.sort((a,b)=>CIERRES[a].lab.localeCompare(CIERRES[b
 : '<p class="sub" style="color:var(--mut)">Ningún laboratorio cerrado.</p>';
 }
 
-function render(){ if(!(cargado.meta && cargado.prod && cargado.cont && cargado.cier)) return; labActual ? renderLab() : renderHome(); if(typeof renderGeneral === "function") renderGeneral(); }
+function render(){ if(!(cargado.meta && cargado.prod && cargado.cont && cargado.cier)) return; labActual ? renderLab() : renderHome(); if(typeof renderGeneral === "function") renderGeneral(); if(typeof renderReconteo === "function") renderReconteo(); }
 
 // ----- Helpers -----
 function lista(){ return Object.entries(PRODS).map(([k,p]) => ({k, ...p, c: CONT[k]||null})); }
@@ -887,9 +952,9 @@ p.stkE += +r.stk_e || 0; p.stkF += +r.stk_f || 0;
 const obj = {}; let n = 0;
 [...map.values()].forEach(p => { n++; obj['p' + String(n).padStart(5,'0')] = p; });
 if(!n){ alert('No encontré filas válidas. Las columnas deben llamarse Laboratorio, Tipo, CodPro, Descripción Producto.'); return; }
-if(!confirm(`Se leyeron ${filas.length} filas = ${n} productos únicos de ${new Set([...map.values()].map(p=>p.lab)).size} laboratorios.\nSe BORRARÁN todos los conteos actuales, para todos los usuarios. ¿Continuar?`)) return;
+if(!confirm(`Se leyeron ${filas.length} filas = ${n} productos únicos de ${new Set([...map.values()].map(p=>p.lab)).size} laboratorios.\nSe BORRARÁN todos los conteos y reconteos actuales, para todos los usuarios. ¿Continuar?`)) return;
 document.getElementById('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Subiendo productos...</div>'; cerrar('mAdmin');
-ref.update({productos: obj, conteos: null, cierres: null, fotos: null})
+ref.update({productos: obj, conteos: null, cierres: null, fotos: null, reconteos: null})
 .then(()=>{ alert(n + ' productos cargados.'); cerrar('mAdmin'); goHome(); })
 .catch(e => alert('Error al cargar: ' + e.message));
 };
@@ -942,21 +1007,200 @@ XLSX.writeFile(wb, 'Conteo_' + META.nombre.replace(/\s+/g,'_') + '.xlsx');
 }
 function respaldo(){
 const a = document.createElement('a');
-a.href = URL.createObjectURL(new Blob([JSON.stringify({meta:META, productos:PRODS, conteos:CONT})], {type:'application/json'}));
-a.download = 'respaldo_' + ALM.key + '.json'; a.click();
+ref.child('reconteos').once('value').then(s => s.val(), () => (recoOn ? RECO : null)).then(rc => {
+a.href = URL.createObjectURL(new Blob([JSON.stringify({meta:META, productos:PRODS, conteos:CONT, reconteos:rc||null})], {type:'application/json'}));
+a.download = 'respaldo_' + ALM.key + '.json'; a.click(); });
 }
 function restaurar(inp){
 const f = inp.files[0]; if(!f) return;
 f.text().then(t => {
 let d; try{ d = JSON.parse(t); if(!d.productos) throw 0; }catch(e){ alert('Archivo de respaldo no válido.'); return; }
 if(confirm('¿Reemplazar el inventario de TODOS con este respaldo?'))
-ref.set({meta:d.meta||META, productos:d.productos, conteos:d.conteos||null})
+ref.set({meta:d.meta||META, productos:d.productos, conteos:d.conteos||null, reconteos:d.reconteos||null})
 .then(()=>{ cerrar('mAdmin'); goHome(); }).catch(e => alert('Error: ' + e.message));
 });
 }
 function borrarTodo(){
 if(confirm('¿Borrar TODO el inventario y los conteos para todos los usuarios? Te recomiendo guardar un respaldo antes.'))
-ref.update({productos:null, conteos:null, cierres:null, fotos:null}).then(()=>{ cerrar('mAdmin'); goHome(); });
+ref.update({productos:null, conteos:null, cierres:null, fotos:null, reconteos:null}).then(()=>{ cerrar('mAdmin'); goHome(); });
+}
+
+// ===== RECONTEO (solo admin) =====
+// Se guarda en <almacén>/reconteos/<producto>. NO toca "conteos": el conteo original queda igual.
+let RECO = {}, recoOn = false, rFiltroCard = '', recoActual = null;
+const recoDe = k => RECO[k] || null;
+const arr = x => x ? Object.values(x) : [];
+const lkey = (lote, venc) => String(lote||'').trim().toUpperCase() + '|' + (venc||'');
+const unid = (p, e, f) => FR ? (+e||0) * (+p.frac||1) + (+f||0) : (+e||0);
+const txtCant = (e, f) => FR ? txtEF(+e||0, +f||0) : String(+e||0);
+// Une los lotes del conteo con los del reconteo (por lote + vencimiento)
+function lotesReco(p){
+const m = new Map();
+filasDe(p).forEach(f => { const k = lkey(f.lote, f.venc);
+const o = m.get(k) || {lote:f.lote||'', venc:f.venc||'', c:0, cf:0, r:null, rf:null, obs:'', orig:true};
+o.c += +f.cant||0; o.cf += +f.fr||0; m.set(k, o); });
+const r = recoDe(p.k);
+arr(r && r.filas).forEach(f => { const k = lkey(f.lote, f.venc);
+const o = m.get(k) || {lote:f.lote||'', venc:f.venc||'', c:null, cf:null, r:null, rf:null, obs:'', orig:false};
+o.r = (o.r||0) + (+f.cant||0); o.rf = (o.rf||0) + (+f.fr||0); if(f.obs) o.obs = f.obs; m.set(k, o); });
+return [...m.values()];
+}
+const tieneReco = p => !!recoDe(p.k);
+function totReco(p){ const r = recoDe(p.k); if(!r) return null; let e = 0, f = 0; arr(r.filas).forEach(x => { e += +x.cant||0; f += +x.fr||0; }); return {e, f}; }
+// Diferencia reconteo − conteo: solo de los lotes que sí se recontaron
+function difReco(p){
+if(!tieneReco(p)) return null; let d = 0;
+lotesReco(p).forEach(l => { if(l.r !== null) d += unid(p, l.r, l.rf) - unid(p, l.c, l.cf); });
+return d;
+}
+function abrirReconteo(){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+if(!recoOn){
+recoOn = true;
+ref.child('reconteos').on('value', s => { RECO = s.val() || {}; renderReconteo(); },
+e => { recoOn = false; alert('No se pudo leer los reconteos: ' + e.message + '\nRevisa que las reglas de Firebase permitan "reconteos".'); });
+}
+const labs = [...new Set(lista().map(p => p.lab))].sort();
+const sel = document.getElementById('rLab'), prev = sel.value;
+sel.innerHTML = '<option value="">Todos los laboratorios</option>' + labs.map(l => '<option>'+esc(l)+'</option>').join('');
+sel.value = prev;
+cerrar('mAdmin');
+document.getElementById('mReconteo').classList.add('on');
+renderReconteo();
+}
+function estReco(p){
+const d = difReco(p);
+return {con: contado(p), reco: tieneReco(p), dist: d !== null && d !== 0, igual: d === 0, difsis: contado(p) && difDe(p) !== 0};
+}
+function filtrarReconteo(){
+const q = (document.getElementById('rQ').value||'').trim().toUpperCase();
+const lab = document.getElementById('rLab').value;
+const est = rFiltroCard || document.getElementById('rEst').value;
+return lista().filter(p => {
+if(lab && p.lab !== lab) return false;
+if(q && !(String(p.cod||'').toUpperCase().includes(q) || String(p.desc||'').toUpperCase().includes(q))) return false;
+const s = estReco(p);
+if(est === 'con') return s.con;
+if(est === 'reco') return s.reco;
+if(est === 'sinreco') return s.con && !s.reco;
+if(est === 'dist') return s.dist;
+if(est === 'igual') return s.igual;
+if(est === 'difsis') return s.difsis;
+return true;
+}).sort((a,b) => a.lab.localeCompare(b.lab) || a.desc.localeCompare(b.desc));
+}
+function setCardReco(v){ rFiltroCard = (rFiltroCard === v ? '' : v); renderReconteo(); }
+function renderReconteo(){
+if(!document.getElementById('mReconteo').classList.contains('on')) return;
+if(!esAdmin(firebase.auth().currentUser)){ cerrar('mReconteo'); return; }
+const lab = document.getElementById('rLab').value;
+const base = lista().filter(p => !lab || p.lab === lab);
+const n = {con:0, reco:0, sinreco:0, dist:0, igual:0, difsis:0};
+base.forEach(p => { const s = estReco(p); if(s.con) n.con++; if(s.reco) n.reco++; if(s.con && !s.reco) n.sinreco++; if(s.dist) n.dist++; if(s.igual) n.igual++; if(s.difsis) n.difsis++; });
+const card = (k, t, v) => '<div class="'+(rFiltroCard===k?'on':'')+'" onclick="setCardReco(\''+k+'\')"><b>'+v+'</b><span>'+t+'</span></div>';
+document.getElementById('rCards').innerHTML = card('con','Contados', n.con) + card('difsis','Con diferencia vs sistema', n.difsis) +
+card('reco','Reconteados', n.reco) + card('sinreco','Sin reconteo', n.sinreco) + card('dist','Reconteo ≠ conteo', n.dist) + card('igual','Reconteo = conteo', n.igual);
+const rows = filtrarReconteo(), MAX = 1500;
+document.getElementById('rBody').innerHTML = rows.slice(0, MAX).map(p => {
+const tr = totReco(p), d = difReco(p), r = recoDe(p.k);
+const stk = (+p.stkE||0) + ((+p.stkF||0) ? ' <span class="gL">+ '+(+p.stkF)+' fr.</span>' : '');
+const lot = lotesReco(p).map(l => esc(l.lote||'s/l')+' · '+esc(fmtVenc(l.venc))+' · '+(l.c===null?'—':txtCant(l.c,l.cf))+
+(l.r!==null?' → <b style="color:#6a1b9a">'+txtCant(l.r,l.rf)+'</b>':'')+(l.orig?'':' <span class="rPill">nuevo</span>')+(l.obs?'<div class="gL">💬 '+esc(l.obs)+'</div>':'')).join('<br>');
+const difTxt = d === null ? '<span class="gP">—</span>' : '<span class="'+(d<0?'gF':d>0?'gS':'gOk')+'">'+(d>0?'+':'')+fmtDif(p,d)+'</span>';
+return '<tr><td>'+esc(p.lab)+'</td><td>'+esc(p.cod)+'</td><td>'+esc(p.desc)+(r&&r.obs?'<div class="gL">🔁 '+esc(r.obs)+'</div>':'')+'</td>'+
+'<td class="n">'+stk+'</td><td class="n">'+(contado(p)?txtCant(total(p),totalF(p)):'<span class="gP">—</span>')+'</td>'+
+'<td class="n">'+(tr?'<span class="rPill">'+txtCant(tr.e,tr.f)+'</span>':'<span class="gP">—</span>')+'</td><td class="n">'+difTxt+'</td>'+
+'<td class="gL">'+lot+(r?'<div class="gL">Recontó: '+esc(r.por||'')+' · '+esc(fmtFecha(r.fecha))+'</div>':'')+'</td>'+
+'<td><button class="btn '+(r?'btn-g':'btn-p')+'" style="white-space:nowrap;padding:5px 10px" onclick="abrirRecontar(\''+p.k+'\')">'+(r?'✎ Editar':'🔁 Recontar')+'</button></td></tr>';
+}).join('') || '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--mut)">Sin resultados</td></tr>';
+document.getElementById('rPie').textContent = 'Mostrando ' + Math.min(rows.length, MAX) + ' de ' + rows.length + ' productos' +
+(rows.length > MAX ? ' (usa los filtros para ver el resto)' : '') + '. La diferencia compara solo los lotes recontados.';
+}
+function filaReco(l, fx){
+const ro = l.orig ? 'readonly' : '';
+return '<tr class="rr" data-orig="'+(l.orig?1:0)+'" data-venc="'+esc(l.venc||'')+'">'+
+'<td><input class="rl" '+ro+' value="'+esc(l.lote||'')+'" placeholder="Lote" style="min-width:90px"></td>'+
+'<td><input class="rv" '+ro+' value="'+esc(vencTxt(l.venc))+'" placeholder="MM/AA" maxlength="5" inputmode="numeric" style="width:80px" oninput="mascara(this)"></td>'+
+'<td style="text-align:right;white-space:nowrap">'+(l.c===null?'—':txtCant(l.c,l.cf))+'</td>'+
+'<td style="white-space:nowrap"><input class="rc" inputmode="numeric" value="'+(l.r===null?'':l.r)+'" placeholder="'+(FR?'Enteros':'Cant.')+'" style="width:80px" oninput="soloNum(this)">'+
+(FR?' <input class="rf" inputmode="numeric" value="'+(l.r===null?'':(l.rf||0))+'" placeholder="Fracc." style="width:70px" oninput="soloNum(this)">':'')+'</td>'+
+'<td><input class="ro" maxlength="200" value="'+esc(l.obs||'')+'" placeholder="Opcional" style="min-width:150px"></td>'+
+'<td>'+(l.orig?'':'<button class="btn btn-r" style="padding:5px 9px" onclick="this.closest(\'tr\').remove()">✕</button>')+'</td></tr>';
+}
+function abrirRecontar(k){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+recoActual = k;
+const p = {k, ...PRODS[k], c: CONT[k]||null}, r = recoDe(k);
+document.getElementById('rcTitulo').textContent = '🔁 ' + p.cod + ' – ' + p.desc;
+document.getElementById('rcSub').textContent = p.lab + ' · Stock sistema: ' + txtCant(p.stkE, p.stkF) + (FR ? ' · Frac: ' + (p.frac||1) : '') +
+(p.c ? ' · Contó: ' + (p.c.por||'') + ' (' + fmtFecha(p.c.fecha) + ')' : ' · Sin conteo del personal');
+document.getElementById('rcThR').textContent = FR ? 'Reconteo (enteros + fracc.)' : 'Reconteo';
+const ls = lotesReco(p);
+document.getElementById('rcBody').innerHTML = ls.map(l => filaReco(l)).join('') + (ls.length ? '' : filaReco({lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:false}));
+document.getElementById('rcObs').value = (r && r.obs) || '';
+document.getElementById('rcQuitar').style.visibility = r ? 'visible' : 'hidden';
+document.getElementById('mRecontar').classList.add('on');
+setTimeout(() => { const i = document.querySelector('#rcBody .rc'); if(i) i.focus(); }, 50);
+}
+function agregarLoteReco(){
+document.getElementById('rcBody').insertAdjacentHTML('beforeend', filaReco({lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:false}));
+document.querySelector('#rcBody tr:last-child .rl').focus();
+}
+function guardarReconteo(){
+if(!esAdmin(firebase.auth().currentUser)){ openAdmin(); return; }
+const k = recoActual, fx = +PRODS[k].frac || 1, filas = []; let n = 0;
+for(const tr of document.querySelectorAll('#rcBody .rr')){
+n++;
+const orig = tr.dataset.orig === '1';
+const lote = tr.querySelector('.rl').value.trim().toUpperCase(), vt = tr.querySelector('.rv').value.trim();
+const c = tr.querySelector('.rc').value, f = tr.querySelector('.rf') ? tr.querySelector('.rf').value : '';
+const obs = tr.querySelector('.ro').value.trim();
+const vacio = c === '' && f === '';
+if(orig && vacio){ if(obs){ alert('Fila ' + n + ' (' + lote + '): pon la cantidad del reconteo o borra la observación.'); return; } continue; }
+if(!orig && vacio && !lote && !vt && !obs) continue;
+const venc = orig ? tr.dataset.venc : leerVenc(vt);
+const falta = [vacio ? 'cantidad' : '', !lote ? 'lote' : '', (!orig && !vt) ? 'vencimiento' : ''].filter(Boolean);
+if(falta.length){ alert('Fila ' + n + ': falta ' + falta.join(', ') + '.'); return; }
+if(venc === null){ alert('Fila ' + n + ': la fecha "' + vt + '" no es válida. Usa MM/AA (ej. 05/27).'); return; }
+if(FR && fx > 1 && (+f||0) >= fx){ alert('Fila ' + n + ': las fracciones (' + f + ') deben ser menores que el Frac (' + fx + ').'); return; }
+const o = {lote, venc, cant: +c||0, obs, nuevo: !orig}; if(FR) o.fr = +f||0;
+filas.push(o);
+}
+const obs = document.getElementById('rcObs').value.trim();
+if(!filas.length){ alert('Escribe la cantidad del reconteo en al menos un lote.'); return; }
+const u = firebase.auth().currentUser;
+ref.child('reconteos/' + k).set({filas, obs, por: resp || (u && u.email) || 'ADMIN', fecha: firebase.database.ServerValue.TIMESTAMP})
+.then(() => cerrar('mRecontar'))
+.catch(e => alert('No se pudo guardar el reconteo: ' + e.message + '\nSi dice "permission denied", agrega el permiso de "reconteos" en las reglas de Firebase.'));
+}
+function quitarReconteo(){
+if(!recoActual || !recoDe(recoActual)) return;
+if(!confirm('¿Quitar el reconteo de este producto? El conteo original no se toca.')) return;
+ref.child('reconteos/' + recoActual).remove().then(() => cerrar('mRecontar')).catch(e => alert('Error: ' + e.message));
+}
+// Excel: una fila por lote con Contado y Reconteo, lote y vencimiento
+function exportarReconteo(){
+if(typeof XLSX === 'undefined'){ alert('No cargó el generador de Excel. Revisa tu internet.'); return; }
+const fecha = v => { if(!v) return ''; const [y,m] = v.split('-').map(Number);
+return {t:'n', v:(Date.UTC(y,m,0) - Date.UTC(1899,11,30))/86400000, z:'dd/mm/yyyy'}; };
+const cab = ['Laboratorio','Tipo','CodPro','Descripción Producto','Frac','Stk_E_Sistema'].concat(FR?['Stk_F_Sistema']:[])
+.concat(['Lote','Fec_Vencimiento','Contado'], FR?['Contado_F']:[], ['Reconteo'], FR?['Reconteo_F']:[],
+['Diferencia (reconteo − contado)','Obs_Lote','Lote_nuevo','Obs_Reconteo','Contó','Recontó','Fecha_Reconteo']);
+const filas = [cab];
+filtrarReconteo().forEach(p => {
+const r = recoDe(p.k), ls = lotesReco(p);
+(ls.length ? ls : [{lote:'',venc:'',c:null,cf:null,r:null,rf:null,obs:'',orig:true}]).forEach(l => {
+const d = l.r === null ? '' : unid(p, l.r, l.rf) - unid(p, l.c, l.cf);
+filas.push([p.lab, p.tipo, String(p.cod), p.desc, p.frac||1, +p.stkE||0].concat(FR?[+p.stkF||0]:[])
+.concat([l.lote, fecha(l.venc), l.c===null?'':l.c], FR?[l.c===null?'':l.cf]:[], [l.r===null?'':l.r], FR?[l.r===null?'':l.rf]:[],
+[d === '' ? '' : (FR ? fmtDif(p, d) : d), l.obs||'', l.orig?'':'SI', r ? r.obs||'' : '', p.c ? p.c.por||'' : '', r ? r.por||'' : '', r ? fmtFecha(r.fecha) : '']));
+});
+});
+if(filas.length === 1){ alert('No hay productos en esta vista.'); return; }
+const ws = XLSX.utils.aoa_to_sheet(filas);
+ws['!cols'] = cab.map(h => ({wch: /Descrip/.test(h) ? 40 : /Laboratorio|Obs/.test(h) ? 28 : 13}));
+const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Conteo vs reconteo');
+XLSX.writeFile(wb, 'Reconteo_' + ALM.key + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
 resp = ''; iniciar(); setResp();
